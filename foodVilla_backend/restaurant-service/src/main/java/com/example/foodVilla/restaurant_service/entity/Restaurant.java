@@ -18,6 +18,8 @@ public class Restaurant {
     private String deliveryTime;
     private String address;
     private String imageUrl;
+    private int costForTwo;
+    private boolean isOpen;
 
     // ✅ Default constructor
     public Restaurant() {
@@ -82,5 +84,19 @@ public class Restaurant {
     }
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public int getCostForTwo() {
+        return costForTwo;
+    }
+    public void setCostForTwo(int costForTwo) {
+        this.costForTwo = costForTwo;
+    }
+
+    public boolean getIsOpen() {
+        return isOpen;
+    }
+    public void setIsOpen(boolean isOpen) {
+        this.isOpen = isOpen;
     }
 }
