@@ -38,7 +38,9 @@ public class AuthController {
         user.setFullName(request.getFullName());
         user.setPhoneNumber(request.getPhoneNumber());
         user.setAddress(request.getAddress());
-        user.setRole(request.getRole() != null ? request.getRole() : "USER");
+        // Role is always assigned server-side; client-supplied role is ignored
+        // to prevent self-assignment of elevated roles at signup.
+        user.setRole("USER");
 
         userRepository.save(user);
         return ResponseEntity.ok(Map.of("message", "User registered successfully ✅"));

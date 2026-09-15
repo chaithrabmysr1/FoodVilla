@@ -28,3 +28,8 @@ eureka:
 logging:
   level:
     com.example.foodVilla.foodcatalogue_service: DEBUG
+
+# JWT signing secret — supplied externally via the JWT_SECRET environment
+# variable (same value used by user-service). See foodVilla_backend/CONFIGURATION.md.
+jwt:
+  secret: ${JWT_SECRET}
