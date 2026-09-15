@@ -1,0 +1,117 @@
+.restaurant-list-wrapper {
+  display: flex;
+  flex-direction: column;       /* stack content vertically */
+  flex: 1 1 auto;               /* allow wrapper to grow */
+  justify-content: center;      /* center cards vertically if space available */
+  align-items: center;          /* center cards horizontally */
+  padding: 20px;
+  background-color: #f9f9f9;
+}
+
+.restaurant-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center; /* center the cards inside */
+  width: 100%;
+  max-width: 1300px;
+}
+
+.restaurant-card {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  width: calc(25% - 15px); /* 4 cards per row default */
+  height: 320px;
+  transition: transform 0.3s;
+}
+
+.restaurant-card:hover {
+  transform: translateY(-5px);
+}
+
+.restaurant-image {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+}
+
+.restaurant-card-content {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.restaurant-card h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.restaurant-card p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.rating-delivery {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  margin-top: 5px;
+}
+
+.rating {
+  color: #ffb400;
+  font-weight: bold;
+}
+
+.delivery-time {
+  background-color: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-size: 0.75rem;
+}
+
+/* ===== Responsive ===== */
+
+/* Large screens: 4 cards per row */
+@media (min-width: 1301px) {
+  .restaurant-card {
+    width: calc(25% - 20px);
+  }
+}
+
+/* Laptop screens: 4 cards per row, centered */
+@media (max-width: 1300px) and (min-width: 1201px) {
+  .restaurant-card {
+    width: 23%;
+  }
+}
+
+/* Medium screens: 3 cards per row, centered */
+@media (max-width: 1200px) and (min-width: 901px) {
+  .restaurant-card {
+    width: 23%;
+  }
+}
+
+/* Tablets: 2 cards per row */
+@media (max-width: 900px) and (min-width: 601px) {
+  .restaurant-card {
+    width: 48%;
+  }
+}
+
+/* Mobiles: 1 card per row */
+@media (max-width: 600px) {
+  .restaurant-card {
+    width: 100%;
+  }
+}

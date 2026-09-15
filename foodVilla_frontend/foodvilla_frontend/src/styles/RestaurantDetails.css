@@ -1,0 +1,167 @@
+/* ===== Restaurant Details Page ===== */
+.restaurant-details-page {
+  width: 90%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px 0;
+  font-family: Arial, sans-serif;
+}
+
+/* ===== Restaurant Header ===== */
+.restaurant-header {
+  background-color: #fff;
+  padding: 20px 25px;
+  border-radius: 10px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 25px;
+}
+
+.restaurant-header h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: bold;
+}
+
+.restaurant-status {
+  margin: 5px 0;
+  font-weight: 500;
+}
+
+.restaurant-status.open {
+  color: #28a745;
+}
+
+.restaurant-status.closed {
+  color: #ff3b30;
+}
+
+.restaurant-meta {
+  display: flex;
+  gap: 10px;
+  font-size: 0.95rem;
+  color: #555;
+  margin: 5px 0;
+}
+
+.restaurant-cuisines {
+  margin: 5px 0;
+  color: #333;
+  font-weight: 500;
+}
+
+.restaurant-address {
+  margin-top: 5px;
+  color: #777;
+  font-size: 0.9rem;
+}
+
+/* ===== Food Items List ===== */
+.food-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Each food item row */
+.food-item-row {
+  display: flex;
+  align-items: center;
+  background-color: #fff;
+  border-radius: 10px;
+  padding: 12px 15px;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+  gap: 15px;
+  transition: transform 0.2s;
+}
+
+.food-item-row:hover {
+  transform: translateY(-3px);
+}
+
+/* Food image */
+.food-item-row img {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+/* Food text info */
+.food-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.food-text h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+.food-text p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+/* Quantity buttons aligned on right */
+.quantity-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quantity-controls button,
+.add-btn {
+  background-color: #ff6600;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.quantity-controls button:hover,
+.add-btn:hover {
+  background-color: #e55a00;
+}
+
+/* Go to cart button */
+.go-to-cart-btn {
+  margin-top: 20px;
+  padding: 10px 20px;
+  background-color: #ff6600;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  float: right;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 700px) {
+  .food-item-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .food-item-row img {
+    width: 100%;
+    height: auto;
+  }
+
+  .quantity-controls {
+    margin-top: 10px;
+  }
+
+  .go-to-cart-btn {
+    float: none;
+    width: 100%;
+  }
+}
+
+

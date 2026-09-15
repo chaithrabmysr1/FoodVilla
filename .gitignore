@@ -1,0 +1,36 @@
+# === Build output ===
+**/target/
+**/dist/
+**/build/
+
+# === Dependencies ===
+node_modules/
+
+# === IDE ===
+**/.idea/
+**/.vscode/
+*.iml
+
+# === OS ===
+.DS_Store
+
+# === Logs ===
+*.log
+
+# === Environment / local secrets ===
+.env
+.env.*
+application-local.properties
+application-local.yml
+application-secrets.properties
+application-secrets.yml
+*.pem
+*.key
+
+# === Leftover scaffolding (outside the real app directory) ===
+# Only the stray files directly under foodVilla_frontend/ are ignored here.
+# The leading "/" anchors these to the repo root, so the real app's
+# foodVilla_frontend/foodvilla_frontend/package.json (and lockfile) are
+# NOT matched by these rules and remain tracked/committable.
+/foodVilla_frontend/package.json
+/foodVilla_frontend/package-lock.json

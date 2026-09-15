@@ -1,0 +1,205 @@
+    .search-page {
+      max-width: 1000px;
+      margin: 20px auto;
+      padding: 0 15px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f9f9f9;
+    }
+
+    .search-input {
+      width: 95%;
+      padding: 12px 15px;
+      border: 1px solid #ddd;
+      border-radius: 25px;
+      font-size: 16px;
+      margin-bottom: 25px;
+      transition: all 0.3s;
+
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: #ff6600;
+      box-shadow: 0 0 8px rgba(255, 102, 0, 0.3);
+    }
+
+    .food-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 20px;
+    }
+
+    .food-card {
+      display: flex;
+      flex-direction: column;
+      background-color: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+      padding: 12px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .food-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+    }
+
+    .food-image {
+      width: 100%;
+      height: 140px;
+      object-fit: cover;
+      border-radius: 12px;
+      margin-bottom: 10px;
+    }
+
+    .food-details {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .food-details h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .food-details p {
+      margin: 0;
+      font-size: 13px;
+      color: #666;
+      line-height: 1.3;
+    }
+
+    .quantity-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .quantity-controls button {
+      padding: 4px 10px;
+      border: none;
+      background-color: #ff6600;
+      color: #fff;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .quantity-controls button:hover {
+      background-color: #e55b00;
+    }
+
+    .quantity-controls span.quantity {
+      font-weight: 600;
+      min-width: 24px;
+      text-align: center;
+    }
+
+    .add-btn {
+      padding: 6px 14px;
+      background-color: #ff6600;
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: 600;
+      margin-top: 10px;
+      transition: background 0.2s;
+    }
+
+    .add-btn:hover {
+      background-color: #e55b00;
+    }
+
+    .go-to-cart-btn {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      padding: 14px 28px;
+      font-size: 16px;
+      border-radius: 25px;
+      background-color: #ff6600;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0px 6px 12px rgba(0,0,0,0.15);
+      transition: transform 0.2s, background 0.2s;
+    }
+
+    .go-to-cart-btn:hover {
+      background-color: #e55b00;
+      transform: translateX(-50%) translateY(-2px);
+    }
+
+    /* Responsive tweaks */
+    @media (max-width: 600px) {
+      .food-card {
+        padding: 10px;
+      }
+
+      .food-image {
+        height: 120px;
+      }
+
+      .add-btn, .quantity-controls button {
+        padding: 5px 12px;
+      }
+    }
+
+    /* Recent searches container */
+    .recent-searches {
+      margin-bottom: 20px;
+    }
+
+    .recent-searches p {
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .recent-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .recent-tag {
+      padding: 6px 12px;
+      background-color: #fff;
+      border: 1px solid #ddd;
+      border-radius: 20px;
+      font-size: 13px;
+      color: #333;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .recent-tag:hover {
+      background-color: #ff6600;
+      color: #fff;
+      border-color: #ff6600;
+    }
+
+    /* Responsive tweaks for mobile */
+    @media (max-width: 600px) {
+      .recent-tag {
+        padding: 5px 10px;
+        font-size: 12px;
+      }
+    }
+
+    /* Ensures page takes full height so footer stays at the bottom */
+
+    .search-page {
+      min-height: 80vh;  /* fills most of the screen */
+      display: flex;
+      flex-direction: column;
+    }
