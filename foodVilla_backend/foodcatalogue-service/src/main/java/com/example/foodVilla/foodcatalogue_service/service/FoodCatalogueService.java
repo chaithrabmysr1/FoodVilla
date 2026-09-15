@@ -3,12 +3,14 @@ package com.example.foodVilla.foodcatalogue_service.service;
 import com.example.foodVilla.foodcatalogue_service.dto.FoodCatalogueResponse;
 import com.example.foodVilla.foodcatalogue_service.dto.RestaurantDTO;
 import com.example.foodVilla.foodcatalogue_service.entity.FoodItem;
+import com.example.foodVilla.foodcatalogue_service.exception.ResourceNotFoundException;
 import com.example.foodVilla.foodcatalogue_service.repository.FoodItemRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
@@ -27,8 +29,12 @@ public class FoodCatalogueService {
 
     // ✅ Get restaurant + its food items
     public ResponseEntity<FoodCatalogueResponse> getCatalogue(Long restaurantId) {
-        RestaurantDTO restaurant =
-                restTemplate.getForObject(RESTAURANT_SERVICE_URL + restaurantId, RestaurantDTO.class);
+        RestaurantDTO restaurant;
+        try {
+            restaurant = restTemplate.getForObject(RESTAURANT_SERVICE_URL + restaurantId, RestaurantDTO.class);
+        } catch (HttpClientErrorException.NotFound ex) {
+            throw new ResourceNotFoundException("Restaurant not found with ID: " + restaurantId);
+        }
 
         List<FoodItem> items = foodRepo.findByRestaurantId(restaurantId);
 

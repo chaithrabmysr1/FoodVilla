@@ -3,12 +3,13 @@ package com.example.foodVilla.restaurant_service.controlller;
 
 
 import com.example.foodVilla.restaurant_service.entity.Restaurant;
+import com.example.foodVilla.restaurant_service.exception.ResourceNotFoundException;
 import com.example.foodVilla.restaurant_service.service.RestaurantService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/restaurants")
@@ -26,19 +27,20 @@ public class RestaurantController {
 
     // ✅ Get restaurant by ID
     @GetMapping("/{id}")
-    public Optional<Restaurant> getRestaurantById(@PathVariable Long id) {
-        return restaurantService.getRestaurantById(id);
+    public Restaurant getRestaurantById(@PathVariable Long id) {
+        return restaurantService.getRestaurantById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Restaurant not found with ID: " + id));
     }
 
     // ✅ Add new restaurant
     @PostMapping
-    public Restaurant addRestaurant(@RequestBody Restaurant restaurant) {
+    public Restaurant addRestaurant(@Valid @RequestBody Restaurant restaurant) {
         return restaurantService.addRestaurant(restaurant);
     }
 
     // ✅ Update restaurant
     @PutMapping("/{id}")
-    public Restaurant updateRestaurant(@PathVariable Long id, @RequestBody Restaurant restaurant) {
+    public Restaurant updateRestaurant(@PathVariable Long id, @Valid @RequestBody Restaurant restaurant) {
         return restaurantService.updateRestaurant(id, restaurant);
     }
 

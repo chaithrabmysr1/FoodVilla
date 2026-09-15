@@ -5,6 +5,7 @@ import com.example.foodVilla.user_service.dto.*;
 import com.example.foodVilla.user_service.entity.User;
 import com.example.foodVilla.user_service.repository.UserRepository;
 import com.example.foodVilla.user_service.security.JwtUtil;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -27,7 +28,7 @@ public class AuthController {
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<?> signup(@RequestBody SignupRequest request) {
+    public ResponseEntity<?> signup(@Valid @RequestBody SignupRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             return ResponseEntity.badRequest().body(Map.of("message", "Email already exists"));
         }
@@ -47,7 +48,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
         return userRepository.findByEmail(request.getEmail())
                 .map(u -> {
                     if (passwordEncoder.matches(request.getPassword(), u.getPassword())) {

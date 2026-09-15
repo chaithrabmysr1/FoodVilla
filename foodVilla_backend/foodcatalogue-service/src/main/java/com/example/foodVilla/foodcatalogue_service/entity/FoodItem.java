@@ -2,6 +2,9 @@ package com.example.foodVilla.foodcatalogue_service.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 
 @Entity
@@ -12,6 +15,7 @@ public class FoodItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank
     private String itemName;
 
     @Column(name = "item_description")
@@ -21,12 +25,15 @@ public class FoodItem {
     @JsonProperty("isVeg") // JSON will use "isVeg"
     private boolean veg = true; // JPA column stays "veg"
 
+    @NotNull
+    @Min(value = 0, message = "price must not be negative")
     private Long price;
 
     @Column(name = "image_url")
     private String imageUrl;
 
     @Column(name = "restaurant_id", nullable = false)
+    @NotNull
     private Long restaurantId;
 
     private Integer quantity;

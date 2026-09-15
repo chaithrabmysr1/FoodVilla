@@ -3,6 +3,9 @@ package com.example.foodVilla.restaurant_service.entity;
 
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 
 @Entity
 @Table(name = "restaurants")
@@ -12,12 +15,17 @@ public class Restaurant {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank
     private String name;
     private String description;
+
+    @DecimalMin(value = "0.0", message = "rating must not be negative")
     private double rating;
     private String deliveryTime;
     private String address;
     private String imageUrl;
+
+    @Min(value = 0, message = "costForTwo must not be negative")
     private int costForTwo;
     private boolean isOpen;
 

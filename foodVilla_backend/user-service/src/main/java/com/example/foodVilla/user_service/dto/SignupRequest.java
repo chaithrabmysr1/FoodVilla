@@ -1,12 +1,27 @@
 package com.example.foodVilla.user_service.dto;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 public class SignupRequest {
+    @NotBlank
+    @Email
     private String email;
+
+    @NotBlank
+    @Size(min = 6, message = "Password must be at least 6 characters")
     private String password;
+
+    @NotBlank
     private String fullName;
+
+    @NotBlank
     private String phoneNumber;
+
+    @NotBlank
     private String address;
+
     private String role; // "USER" or "CUSTOMER" or "ADMIN"
 
     public SignupRequest() {}
