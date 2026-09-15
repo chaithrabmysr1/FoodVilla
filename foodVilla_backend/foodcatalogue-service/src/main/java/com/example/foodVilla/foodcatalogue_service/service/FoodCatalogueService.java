@@ -7,6 +7,7 @@ import com.example.foodVilla.foodcatalogue_service.exception.ResourceNotFoundExc
 import com.example.foodVilla.foodcatalogue_service.repository.FoodItemRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -25,7 +26,8 @@ public class FoodCatalogueService {
     @Autowired
     private RestTemplate restTemplate;
 
-    private static final String RESTAURANT_SERVICE_URL = "http://restaurant-service/api/restaurants/";
+    @Value("${restaurant.service.url}")
+    private String RESTAURANT_SERVICE_URL;
 
     // ✅ Get restaurant + its food items
     public ResponseEntity<FoodCatalogueResponse> getCatalogue(Long restaurantId) {

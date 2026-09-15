@@ -1,12 +1,12 @@
 server:
-  port: 8083  # unique port for foodcatalogue-service
+  port: ${PORT:8083}  # unique port for foodcatalogue-service
 
 spring:
   application:
     name: foodcatalogue-service
   datasource:
-    url: jdbc:mysql://localhost:3306/foodvilla_foodCatalogueService
-    username: root
+    url: ${DB_URL:jdbc:mysql://localhost:3306/foodvilla_foodCatalogueService}
+    username: ${DB_USERNAME:root}
     # Supplied externally — set the DB_PASSWORD environment variable before
     # starting this service. See foodVilla_backend/CONFIGURATION.md.
     password: ${DB_PASSWORD}
@@ -15,19 +15,19 @@ spring:
       ddl-auto: update
     show-sql: true
 
-eureka:
-  client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka/
-    register-with-eureka: true
-    fetch-registry: true
-  instance:
-    lease-renewal-interval-in-seconds: 5
-    lease-expiration-duration-in-seconds: 15
-
 logging:
   level:
     com.example.foodVilla.foodcatalogue_service: DEBUG
+
+cors:
+  allowed:
+    origin: ${CORS_ALLOWED_ORIGIN:http://localhost:5173}
+
+# Base URL of restaurant-service, called directly (no service discovery).
+# Supplied externally via RESTAURANT_SERVICE_URL for cloud deployment.
+restaurant:
+  service:
+    url: ${RESTAURANT_SERVICE_URL:http://localhost:8082/api/restaurants/}
 
 # JWT signing secret — supplied externally via the JWT_SECRET environment
 # variable (same value used by user-service). See foodVilla_backend/CONFIGURATION.md.
