@@ -44,6 +44,18 @@ order:
 
 spring.kafka:
   bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  # Connection security is environment-driven so the same build runs against the
+  # local Docker broker (PLAINTEXT, the default) and a SASL_SSL cluster such as
+  # Aiven on Render. Kafka clients default to PLAINTEXT, so pointing one at a
+  # TLS-only port without these set can exhaust the heap in NetworkReceive.
+  # Set KAFKA_SASL_JAAS_CONFIG only as a Render secret — never commit it.
+  security:
+    protocol: ${KAFKA_SECURITY_PROTOCOL:PLAINTEXT}
+  # Common client properties (applied to the producer, consumer and admin client).
+  # Empty defaults are ignored by the PLAINTEXT channel.
+  properties:
+    sasl.mechanism: ${KAFKA_SASL_MECHANISM:}
+    sasl.jaas.config: ${KAFKA_SASL_JAAS_CONFIG:}
   producer:
     key-serializer: org.apache.kafka.common.serialization.StringSerializer
     value-serializer: org.springframework.kafka.support.serializer.JsonSerializer

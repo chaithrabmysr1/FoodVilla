@@ -70,6 +70,24 @@ docker compose up -d kafka
 docker compose up -d kafka-ui
 ```
 
+**Connection security** (`order-service`). Local Docker Kafka is PLAINTEXT and
+needs nothing beyond `KAFKA_BOOTSTRAP_SERVERS`. For a SASL_SSL cluster (e.g.
+Aiven on Render) set these environment variables. The defaults are the local
+ones; nothing Aiven-specific is stored in the repo, and credentials must only
+ever be supplied as deployment secrets, never committed:
+
+| Variable | Default | Example (Aiven / Render) |
+|---|---|---|
+| `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | the cluster's **SASL** host:port |
+| `KAFKA_SECURITY_PROTOCOL` | `PLAINTEXT` | `SASL_SSL` |
+| `KAFKA_SASL_MECHANISM` | *(empty)* | `SCRAM-SHA-256` |
+| `KAFKA_SASL_JAAS_CONFIG` | *(empty)* | `org.apache.kafka.common.security.scram.ScramLoginModule required username="…" password="…";` |
+
+A Kafka client defaults to PLAINTEXT. Pointing it at a TLS/SASL_SSL-only port
+without setting these makes the broker answer with a TLS alert that the client
+misreads as a ~336 MiB response length, failing with `OutOfMemoryError` in
+`NetworkReceive.readFrom` regardless of the fetch-size limits.
+
 Topics (`foodvilla.order.events`, `foodvilla.payment.events`,
 `foodvilla.restaurant.events`, `foodvilla.delivery.events`) are
 auto-created on first publish/subscribe against the local broker — no
