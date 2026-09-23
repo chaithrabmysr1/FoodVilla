@@ -51,6 +51,10 @@ spring.kafka:
   # Set KAFKA_SASL_JAAS_CONFIG only as a Render secret — never commit it.
   security:
     protocol: ${KAFKA_SECURITY_PROTOCOL:PLAINTEXT}
+  # TLS trust for the Kafka clients only (not the JVM-wide truststore): points at
+  # the spring.ssl bundle below, so a private CA such as Aiven's can be trusted.
+  ssl:
+    bundle: kafka-ca
   # Common client properties (applied to the producer, consumer and admin client).
   # Empty defaults are ignored by the PLAINTEXT channel.
   properties:
@@ -71,6 +75,18 @@ spring.kafka:
       fetch.max.bytes: 5242880
     max-poll-records: 50
     auto-offset-reset: earliest
+
+# CA certificate the Kafka clients use to verify the broker (e.g. Aiven's ca.pem).
+# KAFKA_SSL_CA_CERTIFICATE is either the PEM text itself or a location such as
+# file:/etc/secrets/aiven-kafka-ca.pem (a Render Secret File). Certificate
+# verification stays ON; when empty (local PLAINTEXT) the JVM default trust is used.
+# The CA is public data, but it is supplied at deploy time rather than committed.
+spring.ssl:
+  bundle:
+    pem:
+      kafka-ca:
+        truststore:
+          certificate: ${KAFKA_SSL_CA_CERTIFICATE:}
 
 # Kafka topic names — override per environment if needed.
 kafka:

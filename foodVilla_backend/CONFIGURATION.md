@@ -82,6 +82,18 @@ ever be supplied as deployment secrets, never committed:
 | `KAFKA_SECURITY_PROTOCOL` | `PLAINTEXT` | `SASL_SSL` |
 | `KAFKA_SASL_MECHANISM` | *(empty)* | `SCRAM-SHA-256` |
 | `KAFKA_SASL_JAAS_CONFIG` | *(empty)* | `org.apache.kafka.common.security.scram.ScramLoginModule required username="…" password="…";` |
+| `KAFKA_SSL_CA_CERTIFICATE` | *(empty)* | `file:/etc/secrets/aiven-kafka-ca.pem` (a Render Secret File), or the PEM text itself |
+
+Aiven's broker certificate is signed by the project's own CA, which the JVM does
+not trust by default (`PKIX path building failed … unable to find valid
+certification path`). Download `ca.pem` from the Aiven console (Kafka service →
+Overview → CA certificate) and supply it through `KAFKA_SSL_CA_CERTIFICATE`,
+either as a Render Secret File path or by pasting the PEM (real line breaks,
+including the `BEGIN`/`END` lines). Certificate verification stays on; the CA is
+trusted by the Kafka clients only, not JVM-wide. Nothing needs committing or
+importing in the Dockerfile. If the path is wrong, the service still starts and
+the Kafka clients log repeated `Error connecting to node` warnings naming the
+file they could not read.
 
 A Kafka client defaults to PLAINTEXT. Pointing it at a TLS/SASL_SSL-only port
 without setting these makes the broker answer with a TLS alert that the client
