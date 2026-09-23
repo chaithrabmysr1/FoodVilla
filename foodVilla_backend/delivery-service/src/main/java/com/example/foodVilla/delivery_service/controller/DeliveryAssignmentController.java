@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/delivery/assignments")
-@CrossOrigin(origins = "${cors.allowed.origin}")
 public class DeliveryAssignmentController {
 
     private final DeliveryService deliveryService;

@@ -11,7 +11,7 @@ import {
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import NotificationBell from "./NotificationBell";
+import logo from "../assets/logo.png";
 import "../styles/Header.css";
 
 const Header = () => {
@@ -55,12 +55,7 @@ const Header = () => {
   return (
     <div className="header">
       <div className="logo-section" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
-        <img
-          src="https://cdn-icons-png.flaticon.com/512/3595/3595455.png"
-          alt="FoodVilla Logo"
-          className="logo"
-        />
-        <h2 className="logo-text">FoodVilla</h2>
+        <img src={logo} alt="FoodVilla" className="logo" />
       </div>
 
       <div className="menu-items">
@@ -80,8 +75,6 @@ const Header = () => {
               <FaReceipt className="icon" />
               <span>My Orders</span>
             </div>
-
-            <NotificationBell />
 
             {isAdmin && (
               <div className="menu-item" onClick={() => navigate("/admin")}>

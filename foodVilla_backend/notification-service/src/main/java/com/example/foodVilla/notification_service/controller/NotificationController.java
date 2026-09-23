@@ -17,7 +17,6 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/api/notifications")
-@CrossOrigin(origins = "${cors.allowed.origin}")
 public class NotificationController {
 
     private final NotificationService notificationService;

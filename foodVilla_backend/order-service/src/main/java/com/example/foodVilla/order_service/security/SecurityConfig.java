@@ -21,6 +21,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/actuator/health").permitAll()
                         // Order data is private — unlike restaurant/catalogue, there
                         // are no public GETs here. Admin-only surfaces are explicit:
                         // there's no restaurant-staff/delivery-partner account model

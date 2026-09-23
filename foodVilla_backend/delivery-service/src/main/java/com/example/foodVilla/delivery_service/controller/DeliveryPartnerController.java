@@ -14,7 +14,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/delivery/partners")
-@CrossOrigin(origins = "${cors.allowed.origin}")
 public class DeliveryPartnerController {
 
     private final DeliveryService deliveryService;

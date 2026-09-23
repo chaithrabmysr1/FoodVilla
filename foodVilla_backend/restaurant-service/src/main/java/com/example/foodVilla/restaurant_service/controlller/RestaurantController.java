@@ -13,7 +13,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/restaurants")
-@CrossOrigin(origins = "${cors.allowed.origin}")
 public class RestaurantController {
 
     @Autowired

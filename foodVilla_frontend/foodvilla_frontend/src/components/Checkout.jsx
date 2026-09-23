@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import confetti from "canvas-confetti";
 import { useAuth } from "../context/AuthContext";
 import { createOrder } from "../services/orderApi";
-import { confirmPayment, initiatePayment } from "../services/paymentApi";
 import "../styles/Cart.css";
 
 const celebrate = () => {
@@ -39,7 +38,6 @@ const Checkout = () => {
     label: "Home",
   });
   const [submitting, setSubmitting] = useState(false);
-  const [stage, setStage] = useState("Placing order...");
   const [error, setError] = useState("");
 
   const restaurantId = cartItems[0]?.restaurantId;
@@ -57,7 +55,6 @@ const Checkout = () => {
     e.preventDefault();
     if (submitting) return;
     setSubmitting(true);
-    setStage("Placing order...");
     setError("");
 
     try {
@@ -73,28 +70,10 @@ const Checkout = () => {
       const res = await createOrder(orderRequest, idempotencyKey);
       const order = res.data;
 
-      // Order exists now, but isn't paid for yet — the customer isn't
-      // "done" until payment clears. Cart stays intact until then too.
-      setStage("Processing payment...");
-      const paymentRes = await initiatePayment(order.id);
-      const payment = paymentRes.data;
-
-      if (payment.provider === "MOCK") {
-        // Local-dev mock mode: there's no real checkout widget to hand off
-        // to, so simulate the customer completing it successfully.
-        await confirmPayment(payment.id);
-      } else {
-        // A real provider (e.g. Razorpay) would open its checkout widget
-        // here instead — that frontend integration doesn't exist yet since
-        // it couldn't be tested against live credentials in this build.
-        throw new Error(
-          `Payment provider "${payment.provider}" isn't supported by this checkout UI yet.`
-        );
-      }
-
-      // Only now — after both the order and payment are confirmed on the
-      // backend — do we clear the cart and show success. A failed request
-      // at any step leaves the cart untouched so the user can retry.
+      // Demo deployment: no payment-service in this build. Order placement
+      // itself is the completed step here — no payment is initiated or
+      // confirmed. A failed request leaves the cart untouched so the user
+      // can retry.
       localStorage.removeItem("cart");
       window.dispatchEvent(new Event("cartUpdated"));
       celebrate();
@@ -108,7 +87,6 @@ const Checkout = () => {
       );
     } finally {
       setSubmitting(false);
-      setStage("Placing order...");
     }
   };
 
@@ -206,10 +184,14 @@ const Checkout = () => {
 
         {error && <p className="auth-message">{error}</p>}
 
+        <p className="checkout-demo-note">
+          Demo checkout — order placement is simulated; no real payment is processed.
+        </p>
+
         <div className="cart-footer">
           <h3>Total: ₹ {totalPrice}</h3>
           <button className="checkout-btn" type="submit" disabled={submitting}>
-            {submitting ? stage : "Place Order"}
+            {submitting ? "Placing order..." : "Place Order"}
           </button>
         </div>
       </form>

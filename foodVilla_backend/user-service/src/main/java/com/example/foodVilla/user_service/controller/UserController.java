@@ -18,7 +18,6 @@ import java.util.Optional;
  */
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin(origins = "${cors.allowed.origin}")
 public class UserController {
 
     private final UserRepository userRepository;

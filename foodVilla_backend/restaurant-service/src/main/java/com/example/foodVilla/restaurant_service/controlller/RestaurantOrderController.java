@@ -22,7 +22,6 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/restaurants/{restaurantId}/orders/{orderId}")
-@CrossOrigin(origins = "${cors.allowed.origin}")
 public class RestaurantOrderController {
 
     private final RestaurantEventPublisher eventPublisher;

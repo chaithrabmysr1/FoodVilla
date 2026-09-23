@@ -15,7 +15,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/payments")
-@CrossOrigin(origins = "${cors.allowed.origin}")
 public class PaymentController {
 
     private final PaymentService paymentService;
