@@ -52,7 +52,7 @@ public class AuthController {
         return userRepository.findByEmail(request.getEmail())
                 .map(u -> {
                     if (passwordEncoder.matches(request.getPassword(), u.getPassword())) {
-                        String token = jwtUtil.generateToken(u.getEmail(), u.getRole());
+                        String token = jwtUtil.generateToken(u.getEmail(), u.getRole(), u.getId());
                         return ResponseEntity.ok(Map.of(
                                 "token", token,
                                 "fullName", u.getFullName(),

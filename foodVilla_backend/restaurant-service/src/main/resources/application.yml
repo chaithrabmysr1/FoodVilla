@@ -31,3 +31,24 @@ cors:
 # variable (same value used by user-service). See foodVilla_backend/CONFIGURATION.md.
 jwt:
   secret: ${JWT_SECRET}
+
+spring.kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  producer:
+    key-serializer: org.apache.kafka.common.serialization.StringSerializer
+    value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    acks: all
+
+kafka:
+  topic:
+    restaurant-events: ${KAFKA_TOPIC_RESTAURANT_EVENTS:foodvilla.restaurant.events}
+
+# Only the health endpoint is exposed — no env/beans/etc. leaking over HTTP.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never

@@ -33,3 +33,13 @@ restaurant:
 # variable (same value used by user-service). See foodVilla_backend/CONFIGURATION.md.
 jwt:
   secret: ${JWT_SECRET}
+
+# Only the health endpoint is exposed — no env/beans/etc. leaking over HTTP.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never

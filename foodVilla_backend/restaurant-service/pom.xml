@@ -94,6 +94,18 @@
 			<version>2.3.0</version>
 		</dependency>
 
+		<!-- Kafka: publishes restaurant.events (order accept/reject/preparing/ready) -->
+		<dependency>
+			<groupId>org.springframework.kafka</groupId>
+			<artifactId>spring-kafka</artifactId>
+		</dependency>
+
+		<!-- Actuator: health endpoint for Docker Compose health checks -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+
 	</dependencies>
 	<dependencyManagement>
 		<dependencies>

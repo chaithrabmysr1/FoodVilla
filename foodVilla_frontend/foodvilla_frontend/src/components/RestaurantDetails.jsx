@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { getRestaurantById } from "../services/restaurantApi";
+import { getCatalogueByRestaurant } from "../services/catalogueApi";
 import "../styles/RestaurantDetails.css";
 
 const RestaurantDetails = () => {
@@ -10,13 +11,11 @@ const RestaurantDetails = () => {
   const [foodItems, setFoodItems] = useState([]);
 
   useEffect(() => {
-    axios
-      .get(`http://localhost:8082/api/restaurants/${id}`)
+    getRestaurantById(id)
       .then((res) => setRestaurant(res.data.restaurant || res.data))
       .catch((err) => console.error(err));
 
-    axios
-      .get(`http://localhost:8083/api/catalogue/${id}`)
+    getCatalogueByRestaurant(id)
       .then((res) => {
         const items = res.data.foodItems || res.data || [];
         setFoodItems(items.map((item) => ({ ...item, quantity: 0 })));
@@ -24,12 +23,29 @@ const RestaurantDetails = () => {
       .catch((err) => console.error(err));
   }, [id]);
 
+  // An order can only belong to one restaurant. If the cart already holds
+  // items from a different restaurant, confirm before replacing it —
+  // otherwise checkout would silently have to drop items later.
+  const confirmReplaceCartIfDifferentRestaurant = (existingCart) => {
+    if (existingCart.length === 0) return existingCart;
+    const cartRestaurantId = existingCart[0].restaurantId;
+    if (cartRestaurantId != null && String(cartRestaurantId) !== String(id)) {
+      const proceed = window.confirm(
+        "Your cart has items from another restaurant. Start a new cart with items from this restaurant?"
+      );
+      return proceed ? [] : null;
+    }
+    return existingCart;
+  };
+
   // ✅ Merge new items into existing cart in localStorage
   const updateCartStorage = (updatedItems) => {
     const existingCart = JSON.parse(localStorage.getItem("cart")) || [];
-    const mergedCartMap = new Map();
+    const base = confirmReplaceCartIfDifferentRestaurant(existingCart);
+    if (base === null) return false; // user declined to replace the cart
 
-    existingCart.forEach((item) => mergedCartMap.set(item.id, { ...item }));
+    const mergedCartMap = new Map();
+    base.forEach((item) => mergedCartMap.set(item.id, { ...item }));
     updatedItems.forEach((item) => {
       if (item.quantity > 0) {
         if (mergedCartMap.has(item.id)) {
@@ -43,14 +59,16 @@ const RestaurantDetails = () => {
     const mergedCart = Array.from(mergedCartMap.values());
     localStorage.setItem("cart", JSON.stringify(mergedCart));
     window.dispatchEvent(new Event("cartUpdated"));
+    return true;
   };
 
   const handleAdd = (itemId) => {
     const updated = foodItems.map((item) =>
       item.id === itemId ? { ...item, quantity: item.quantity + 1 } : item
     );
-    setFoodItems(updated);
-    updateCartStorage(updated);
+    if (updateCartStorage(updated)) {
+      setFoodItems(updated);
+    }
   };
 
   const handleRemove = (itemId) => {
@@ -64,8 +82,9 @@ const RestaurantDetails = () => {
   };
 
   const goToCart = () => {
-    updateCartStorage(foodItems);
-    navigate("/cart");
+    if (updateCartStorage(foodItems)) {
+      navigate("/cart");
+    }
   };
 
   const totalItems = foodItems.reduce((sum, item) => sum + item.quantity, 0);

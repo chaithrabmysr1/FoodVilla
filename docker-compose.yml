@@ -1,0 +1,337 @@
+name: foodvilla
+
+# Full local environment: MySQL, Kafka, all 8 backend services, and
+# (optionally) the web frontend behind nginx. `docker compose up --build`
+# from the repo root brings up everything.
+#
+# Every inter-service URL below uses Docker Compose service names
+# (http://user-service:8081, etc.) — NOT localhost — per Phase 11. This is
+# a *second*, container-only configuration; it does not change how any
+# service behaves when run outside Docker (mvn spring-boot:run still
+# defaults to localhost, see foodVilla_backend/CONFIGURATION.md).
+
+services:
+  # ---------------------------------------------------------------------
+  # Infrastructure
+  # ---------------------------------------------------------------------
+
+  mysql:
+    image: mysql:8.0
+    container_name: foodvilla-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./foodVilla_backend/db-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # Single-node Kafka in KRaft mode (broker + controller combined) — no
+  # Zookeeper. Two listeners: PLAINTEXT (kafka:9092) for other containers,
+  # PLAINTEXT_HOST (localhost:29092) for tools running on the host machine
+  # (e.g. a backend service started via `mvn spring-boot:run` outside
+  # Docker, or a local kafka-console-consumer).
+  kafka:
+    image: apache/kafka:3.8.0
+    container_name: foodvilla-kafka
+    restart: unless-stopped
+    ports:
+      - "29092:29092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      CLUSTER_ID: "foodvilla-kraft-cluster-1"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+
+  # Web UI for inspecting topics/messages during local development.
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: foodvilla-kafka-ui
+    restart: unless-stopped
+    ports:
+      - "8090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: foodvilla
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------
+  # Backend services
+  # ---------------------------------------------------------------------
+
+  user-service:
+    build: ./foodVilla_backend/user-service
+    container_name: foodvilla-user-service
+    restart: unless-stopped
+    environment:
+      PORT: 8081
+      DB_URL: jdbc:mysql://mysql:3306/foodvilla_userService
+      DB_USERNAME: root
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:5173}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  restaurant-service:
+    build: ./foodVilla_backend/restaurant-service
+    container_name: foodvilla-restaurant-service
+    restart: unless-stopped
+    environment:
+      PORT: 8082
+      DB_URL: jdbc:mysql://mysql:3306/foodvilla_restaurantService
+      DB_USERNAME: root
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:5173}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  foodcatalogue-service:
+    build: ./foodVilla_backend/foodcatalogue-service
+    container_name: foodvilla-foodcatalogue-service
+    restart: unless-stopped
+    environment:
+      PORT: 8083
+      DB_URL: jdbc:mysql://mysql:3306/foodvilla_foodCatalogueService
+      DB_USERNAME: root
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:5173}
+      # Full path (trailing slash) — this service's own REST client shape,
+      # NOT the gateway's bare-origin shape. See CONFIGURATION.md.
+      RESTAURANT_SERVICE_URL: http://restaurant-service:8082/api/restaurants/
+    depends_on:
+      mysql:
+        condition: service_healthy
+      restaurant-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  order-service:
+    build: ./foodVilla_backend/order-service
+    container_name: foodvilla-order-service
+    restart: unless-stopped
+    environment:
+      PORT: 8084
+      DB_URL: jdbc:mysql://mysql:3306/foodvilla_orderService
+      DB_USERNAME: root
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:5173}
+      # Full path (trailing slash) — order-service's own REST client shape,
+      # NOT the gateway's bare-origin shape. See CONFIGURATION.md.
+      CATALOGUE_SERVICE_URL: http://foodcatalogue-service:8083/api/catalogue/
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      ORDER_DELIVERY_FEE: ${ORDER_DELIVERY_FEE:-40}
+      ORDER_TAX_RATE: ${ORDER_TAX_RATE:-0.05}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      foodcatalogue-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  payment-service:
+    build: ./foodVilla_backend/payment-service
+    container_name: foodvilla-payment-service
+    restart: unless-stopped
+    environment:
+      PORT: 8085
+      DB_URL: jdbc:mysql://mysql:3306/foodvilla_paymentService
+      DB_USERNAME: root
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:5173}
+      # Full path (trailing slash) — payment-service's own REST client
+      # shape, NOT the gateway's bare-origin shape. See CONFIGURATION.md.
+      ORDER_SERVICE_URL: http://order-service:8084/api/orders/
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      # Mock mode is the safe local default — never bake real Razorpay
+      # secrets into this file. Set PAYMENT_PROVIDER=razorpay plus the two
+      # keys in your own untracked .env if you want to test that path.
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-mock}
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      order-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  delivery-service:
+    build: ./foodVilla_backend/delivery-service
+    container_name: foodvilla-delivery-service
+    restart: unless-stopped
+    environment:
+      PORT: 8086
+      DB_URL: jdbc:mysql://mysql:3306/foodvilla_deliveryService
+      DB_USERNAME: root
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:5173}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  notification-service:
+    build: ./foodVilla_backend/notification-service
+    container_name: foodvilla-notification-service
+    restart: unless-stopped
+    environment:
+      PORT: 8087
+      DB_URL: jdbc:mysql://mysql:3306/foodvilla_notificationService
+      DB_USERNAME: root
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:5173}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8087/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  api-gateway:
+    build: ./foodVilla_backend/api-gateway
+    container_name: foodvilla-api-gateway
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: 8080
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:5173}
+      # Bare origins — the gateway forwards the incoming request path
+      # unchanged, unlike the full-path shapes above. See CONFIGURATION.md.
+      USER_SERVICE_URL: http://user-service:8081
+      RESTAURANT_SERVICE_URL: http://restaurant-service:8082
+      CATALOGUE_SERVICE_URL: http://foodcatalogue-service:8083
+      ORDER_SERVICE_URL: http://order-service:8084
+      PAYMENT_SERVICE_URL: http://payment-service:8085
+      DELIVERY_SERVICE_URL: http://delivery-service:8086
+      NOTIFICATION_SERVICE_URL: http://notification-service:8087
+    depends_on:
+      user-service:
+        condition: service_started
+      restaurant-service:
+        condition: service_started
+      foodcatalogue-service:
+        condition: service_started
+      order-service:
+        condition: service_started
+      payment-service:
+        condition: service_started
+      delivery-service:
+        condition: service_started
+      notification-service:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ---------------------------------------------------------------------
+  # Web frontend (optional — `npm run dev` outside Docker still works and
+  # is the faster iteration loop; this is for a production-style preview
+  # of the full stack in one command).
+  # ---------------------------------------------------------------------
+
+  web:
+    build:
+      context: ./foodVilla_frontend/foodvilla_frontend
+      args:
+        # Baked in at build time (Vite) — must be a BROWSER-reachable
+        # URL, never a Docker-internal hostname like http://api-gateway:8080
+        # (the browser running on your machine can't resolve that).
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
+    container_name: foodvilla-web
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      api-gateway:
+        condition: service_started
+
+volumes:
+  mysql-data:
+  kafka-data:

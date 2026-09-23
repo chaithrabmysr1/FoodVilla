@@ -67,10 +67,9 @@ const Cart = () => {
   };
 
   const handleCheckout = () => {
-    localStorage.setItem("lastOrder", JSON.stringify(cartItems));
-    localStorage.removeItem("cart");
-    window.dispatchEvent(new Event("cartUpdated"));
-    setCartItems([]);
+    // Cart stays intact until an order is actually created on the backend —
+    // Checkout reads directly from localStorage["cart"] and only clears it
+    // on a confirmed order, so a failed/declined request doesn't lose items.
     navigate("/checkout");
   };
 

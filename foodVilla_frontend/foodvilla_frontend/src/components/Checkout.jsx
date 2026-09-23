@@ -1,78 +1,134 @@
-import React, { useEffect, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import confetti from "canvas-confetti";
+import { useAuth } from "../context/AuthContext";
+import { createOrder } from "../services/orderApi";
+import { confirmPayment, initiatePayment } from "../services/paymentApi";
 import "../styles/Cart.css";
 
+const celebrate = () => {
+  const duration = 2 * 1000;
+  const end = Date.now() + duration;
+  const frame = () => {
+    confetti({ particleCount: 5, angle: 60, spread: 70, origin: { x: 0 } });
+    confetti({ particleCount: 5, angle: 120, spread: 70, origin: { x: 1 } });
+    if (Date.now() < end) requestAnimationFrame(frame);
+  };
+  frame();
+};
+
 const Checkout = () => {
-  const [orderItems, setOrderItems] = useState([]);
-  const [user, setUser] = useState(null);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  useEffect(() => {
-    // ✅ Load last order from localStorage
-    const lastOrder = JSON.parse(localStorage.getItem("lastOrder")) || [];
-    setOrderItems(lastOrder);
+  const [cartItems] = useState(() => JSON.parse(localStorage.getItem("cart")) || []);
+  // Generated once per checkout attempt — retried submissions (e.g. after a
+  // transient network error) reuse the same key so order-service treats them
+  // as the same order instead of creating a duplicate.
+  const [idempotencyKey] = useState(() => crypto.randomUUID());
 
-    // ✅ Load user info from localStorage
-    const userInfo = JSON.parse(localStorage.getItem("user"));
-    setUser(userInfo);
+  const [address, setAddress] = useState({
+    recipientName: user?.fullName || "",
+    phone: user?.phoneNumber || "",
+    addressLine1: user?.address || "",
+    addressLine2: "",
+    city: "",
+    state: "",
+    pincode: "",
+    landmark: "",
+    label: "Home",
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [stage, setStage] = useState("Placing order...");
+  const [error, setError] = useState("");
 
-    // ✅ Clear cart and update header badge
-    localStorage.removeItem("cart");
-    window.dispatchEvent(new Event("cartUpdated"));
+  const restaurantId = cartItems[0]?.restaurantId;
 
-    // 🎉 Trigger confetti animation
-    const duration = 2 * 1000;
-    const end = Date.now() + duration;
-
-    const frame = () => {
-      confetti({ particleCount: 5, angle: 60, spread: 70, origin: { x: 0 } });
-      confetti({ particleCount: 5, angle: 120, spread: 70, origin: { x: 1 } });
-      if (Date.now() < end) requestAnimationFrame(frame);
-    };
-    frame();
-  }, []);
-
-  const totalPrice = orderItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
+  const totalPrice = useMemo(
+    () => cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    [cartItems]
   );
 
-  const handleBackHome = () => {
-    navigate("/");
+  const handleAddressChange = (e) => {
+    setAddress({ ...address, [e.target.name]: e.target.value });
   };
 
-  if (orderItems.length === 0)
-    return <p className="empty-cart">No recent order found.</p>;
+  const handlePlaceOrder = async (e) => {
+    e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+    setStage("Placing order...");
+    setError("");
+
+    try {
+      const orderRequest = {
+        restaurantId,
+        items: cartItems.map((item) => ({
+          foodItemId: item.id,
+          quantity: item.quantity,
+        })),
+        deliveryAddress: address,
+      };
+
+      const res = await createOrder(orderRequest, idempotencyKey);
+      const order = res.data;
+
+      // Order exists now, but isn't paid for yet — the customer isn't
+      // "done" until payment clears. Cart stays intact until then too.
+      setStage("Processing payment...");
+      const paymentRes = await initiatePayment(order.id);
+      const payment = paymentRes.data;
+
+      if (payment.provider === "MOCK") {
+        // Local-dev mock mode: there's no real checkout widget to hand off
+        // to, so simulate the customer completing it successfully.
+        await confirmPayment(payment.id);
+      } else {
+        // A real provider (e.g. Razorpay) would open its checkout widget
+        // here instead — that frontend integration doesn't exist yet since
+        // it couldn't be tested against live credentials in this build.
+        throw new Error(
+          `Payment provider "${payment.provider}" isn't supported by this checkout UI yet.`
+        );
+      }
+
+      // Only now — after both the order and payment are confirmed on the
+      // backend — do we clear the cart and show success. A failed request
+      // at any step leaves the cart untouched so the user can retry.
+      localStorage.removeItem("cart");
+      window.dispatchEvent(new Event("cartUpdated"));
+      celebrate();
+
+      navigate(`/orders/${order.id}`, { state: { justPlaced: true } });
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          "We couldn't place your order. Please check your details and try again."
+      );
+    } finally {
+      setSubmitting(false);
+      setStage("Placing order...");
+    }
+  };
+
+  if (cartItems.length === 0) {
+    return (
+      <div className="cart-page">
+        <p className="empty-cart">Your cart is empty.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="cart-page checkout-page">
-      {/* ✅ Success Message */}
-      <div className="checkout-header">
-        <div className="success-tick">✔️</div>
-        <h2>Order Placed Successfully!</h2>
-        <p>Your delicious food is being prepared 🍴</p>
-      </div>
+      <h2>Checkout</h2>
 
-      {/* ✅ User Info Section */}
-      {user && (
-        <div className="user-details">
-          <h3>Delivery Details</h3>
-          <p><strong>Name:</strong> {user.fullName}</p>
-          <p><strong>Phone:</strong> {user.phoneNumber}</p>
-          <p><strong>Address:</strong> {user.address}</p>
-        </div>
-      )}
-
-      {/* ✅ Ordered Items */}
       <div className="cart-items">
         <h3>Order Summary</h3>
-        {orderItems.map((item) => (
+        {cartItems.map((item) => (
           <div className="cart-item-row" key={item.id}>
-            <img
-              src={item.imageUrl || "/default-food.png"}
-              alt={item.itemName}
-            />
+            <img src={item.imageUrl || "/default-food.png"} alt={item.itemName} />
             <div className="cart-item-text">
               <h4>{item.itemName}</h4>
               <p>₹ {item.price}</p>
@@ -83,14 +139,80 @@ const Checkout = () => {
         ))}
       </div>
 
-      {/* ✅ Footer Section */}
-      <div className="cart-footer">
-        <h3>Total Paid: ₹ {totalPrice}</h3>
-        <p>Payment Method: <strong>Online Payment (Simulated)</strong></p>
-        <button className="checkout-btn" onClick={handleBackHome}>
-          Back to Home
+      <form className="user-details" onSubmit={handlePlaceOrder}>
+        <h3>Delivery Address</h3>
+        <input
+          type="text"
+          name="recipientName"
+          placeholder="Recipient name"
+          value={address.recipientName}
+          onChange={handleAddressChange}
+          required
+        />
+        <input
+          type="text"
+          name="phone"
+          placeholder="Phone number"
+          value={address.phone}
+          onChange={handleAddressChange}
+          required
+        />
+        <input
+          type="text"
+          name="addressLine1"
+          placeholder="Address line 1"
+          value={address.addressLine1}
+          onChange={handleAddressChange}
+          required
+        />
+        <input
+          type="text"
+          name="addressLine2"
+          placeholder="Address line 2 (optional)"
+          value={address.addressLine2}
+          onChange={handleAddressChange}
+        />
+        <input
+          type="text"
+          name="city"
+          placeholder="City"
+          value={address.city}
+          onChange={handleAddressChange}
+          required
+        />
+        <input
+          type="text"
+          name="state"
+          placeholder="State"
+          value={address.state}
+          onChange={handleAddressChange}
+          required
+        />
+        <input
+          type="text"
+          name="pincode"
+          placeholder="Pincode"
+          value={address.pincode}
+          onChange={handleAddressChange}
+          required
+        />
+        <input
+          type="text"
+          name="landmark"
+          placeholder="Landmark (optional)"
+          value={address.landmark}
+          onChange={handleAddressChange}
+        />
+
+        {error && <p className="auth-message">{error}</p>}
+
+        <div className="cart-footer">
+          <h3>Total: ₹ {totalPrice}</h3>
+          <button className="checkout-btn" type="submit" disabled={submitting}>
+            {submitting ? stage : "Place Order"}
           </button>
-      </div>
+        </div>
+      </form>
     </div>
   );
 };

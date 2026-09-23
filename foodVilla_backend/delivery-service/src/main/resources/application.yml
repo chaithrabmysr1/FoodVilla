@@ -1,0 +1,46 @@
+server:
+  port: ${PORT:8086}
+
+spring:
+  application:
+    name: delivery-service
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/foodvilla_deliveryService}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+logging:
+  level:
+    com.example.foodVilla.delivery_service: DEBUG
+
+cors:
+  allowed:
+    origin: ${CORS_ALLOWED_ORIGIN:http://localhost:5173}
+
+jwt:
+  secret: ${JWT_SECRET}
+
+spring.kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  producer:
+    key-serializer: org.apache.kafka.common.serialization.StringSerializer
+    value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    acks: all
+
+kafka:
+  topic:
+    delivery-events: ${KAFKA_TOPIC_DELIVERY_EVENTS:foodvilla.delivery.events}
+
+# Only the health endpoint is exposed — no env/beans/etc. leaking over HTTP.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never

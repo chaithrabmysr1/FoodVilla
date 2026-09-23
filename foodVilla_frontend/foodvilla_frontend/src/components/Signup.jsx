@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import { signup as signupApi } from "../services/authApi";
 import "../styles/Auth.css";
 
 const Signup = () => {
@@ -24,10 +24,7 @@ const Signup = () => {
     setMessage("");
 
     try {
-      const res = await axios.post(
-        "http://localhost:8081/api/auth/signup",
-        formData
-      );
+      const res = await signupApi(formData);
       setMessage(res.data.message);
       if (res.status === 200) {
         setTimeout(() => navigate("/login"), 1500);

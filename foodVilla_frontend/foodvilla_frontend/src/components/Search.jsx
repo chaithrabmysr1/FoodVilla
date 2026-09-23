@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { getAllRestaurants } from "../services/restaurantApi";
+import { getCatalogueByRestaurant } from "../services/catalogueApi";
 import "../styles/Search.css";
 
 const Search = () => {
@@ -14,17 +15,13 @@ const Search = () => {
   useEffect(() => {
     const fetchAllFoodItems = async () => {
       try {
-        const resRestaurants = await axios.get(
-          "http://localhost:8082/api/restaurants/getAllRestaurants"
-        );
+        const resRestaurants = await getAllRestaurants();
         const restaurants = resRestaurants.data || [];
 
         const allItems = [];
         await Promise.all(
           restaurants.map(async (restaurant) => {
-            const resFood = await axios.get(
-              `http://localhost:8083/api/catalogue/${restaurant.id}`
-            );
+            const resFood = await getCatalogueByRestaurant(restaurant.id);
             const items = resFood.data.foodItems || resFood.data || [];
             items.forEach((item) => {
               allItems.push({
@@ -95,7 +92,26 @@ const Search = () => {
     window.dispatchEvent(new Event("cartUpdated"));
   };
 
+  // An order can only belong to one restaurant. If the cart already holds
+  // items from a different restaurant, confirm before replacing it.
+  const ensureCartMatchesRestaurant = (newRestaurantId) => {
+    const existingCart = JSON.parse(localStorage.getItem("cart")) || [];
+    if (existingCart.length === 0) return true;
+    const cartRestaurantId = existingCart[0].restaurantId;
+    if (cartRestaurantId != null && String(cartRestaurantId) !== String(newRestaurantId)) {
+      const proceed = window.confirm(
+        "Your cart has items from another restaurant. Start a new cart with items from this restaurant?"
+      );
+      if (!proceed) return false;
+      localStorage.setItem("cart", JSON.stringify([]));
+    }
+    return true;
+  };
+
   const handleAdd = (itemId) => {
+    const target = allFoodItems.find((item) => item.id === itemId);
+    if (!ensureCartMatchesRestaurant(target?.restaurantId)) return;
+
     const updated = allFoodItems.map((item) =>
       item.id === itemId ? { ...item, quantity: item.quantity + 1 } : item
     );

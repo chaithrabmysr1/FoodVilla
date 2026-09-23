@@ -1,0 +1,63 @@
+server:
+  port: ${PORT:8085}
+
+spring:
+  application:
+    name: payment-service
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/foodvilla_paymentService}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+logging:
+  level:
+    com.example.foodVilla.payment_service: DEBUG
+
+cors:
+  allowed:
+    origin: ${CORS_ALLOWED_ORIGIN:http://localhost:5173}
+
+jwt:
+  secret: ${JWT_SECRET}
+
+# Base URL of order-service, called directly (no service discovery) to fetch
+# the authoritative order total before creating a payment — never trust an
+# amount submitted by the client. Full path incl. /api/orders/, same
+# same-name-different-shape convention as RESTAURANT_SERVICE_URL /
+# CATALOGUE_SERVICE_URL — see CONFIGURATION.md.
+order:
+  service:
+    url: ${ORDER_SERVICE_URL:http://localhost:8084/api/orders/}
+
+spring.kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  producer:
+    key-serializer: org.apache.kafka.common.serialization.StringSerializer
+    value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    acks: all
+
+kafka:
+  topic:
+    payment-events: ${KAFKA_TOPIC_PAYMENT_EVENTS:foodvilla.payment.events}
+
+# Payment provider: "mock" (default, no external calls, safe for local dev
+# with no money involved) or "razorpay" (requires RAZORPAY_KEY_ID/SECRET).
+payment:
+  provider: ${PAYMENT_PROVIDER:mock}
+  razorpay:
+    key-id: ${RAZORPAY_KEY_ID:}
+    key-secret: ${RAZORPAY_KEY_SECRET:}
+
+# Only the health endpoint is exposed — no env/beans/etc. leaking over HTTP.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never

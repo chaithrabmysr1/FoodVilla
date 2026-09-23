@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { getAllRestaurants } from "../services/restaurantApi";
 import "../styles/RestaurantList.css";
 
 const RestaurantList = () => {
@@ -8,8 +8,7 @@ const RestaurantList = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios
-      .get("http://localhost:8082/api/restaurants/getAllRestaurants")
+    getAllRestaurants()
       .then((res) => setRestaurants(res.data || []))
       .catch((err) => console.error(err));
   }, []);

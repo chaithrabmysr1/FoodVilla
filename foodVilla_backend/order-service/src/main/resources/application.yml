@@ -1,0 +1,76 @@
+server:
+  port: ${PORT:8084}  # unique port for order-service
+
+spring:
+  application:
+    name: order-service
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/foodvilla_orderService}
+    username: ${DB_USERNAME:root}
+    # Supplied externally — set the DB_PASSWORD environment variable before
+    # starting this service. See foodVilla_backend/CONFIGURATION.md.
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+logging:
+  level:
+    com.example.foodVilla.order_service: DEBUG
+
+cors:
+  allowed:
+    origin: ${CORS_ALLOWED_ORIGIN:http://localhost:5173}
+
+# Base URL of foodcatalogue-service's aggregate catalogue endpoint, called
+# directly (no service discovery). Used to fetch authoritative restaurant
+# name + food item name/price snapshots when an order is created.
+# NOTE: this includes the /api/catalogue/ path, unlike the gateway's
+# CATALOGUE_SERVICE_URL (bare origin) — see CONFIGURATION.md.
+catalogue:
+  service:
+    url: ${CATALOGUE_SERVICE_URL:http://localhost:8083/api/catalogue/}
+
+# JWT signing secret — supplied externally via the JWT_SECRET environment
+# variable (same value used by user-service). See foodVilla_backend/CONFIGURATION.md.
+jwt:
+  secret: ${JWT_SECRET}
+
+# Placeholder pricing rules until a real fee/tax engine exists.
+order:
+  delivery-fee: ${ORDER_DELIVERY_FEE:40}
+  tax-rate: ${ORDER_TAX_RATE:0.05}
+
+spring.kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  producer:
+    key-serializer: org.apache.kafka.common.serialization.StringSerializer
+    value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    acks: all
+  consumer:
+    group-id: order-service
+    key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+    properties:
+      spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+      spring.json.trusted.packages: com.example.foodVilla.order_service.event
+    auto-offset-reset: earliest
+
+# Kafka topic names — override per environment if needed.
+kafka:
+  topic:
+    order-events: ${KAFKA_TOPIC_ORDER_EVENTS:foodvilla.order.events}
+    payment-events: ${KAFKA_TOPIC_PAYMENT_EVENTS:foodvilla.payment.events}
+    restaurant-events: ${KAFKA_TOPIC_RESTAURANT_EVENTS:foodvilla.restaurant.events}
+    delivery-events: ${KAFKA_TOPIC_DELIVERY_EVENTS:foodvilla.delivery.events}
+
+# Only the health endpoint is exposed — no env/beans/etc. leaking over HTTP.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
