@@ -42,16 +42,10 @@ order:
   delivery-fee: ${ORDER_DELIVERY_FEE:40}
   tax-rate: ${ORDER_TAX_RATE:0.05}
 
-# Razorpay TEST MODE payments (portfolio/demo — no real money). Both values come
-# from the environment and are optional: without them the service still starts
-# and everything except paying for an order works; payment endpoints answer 503
-# PAYMENT_NOT_CONFIGURED. The key id must be a rzp_test_ key — live keys are
-# rejected. The secret stays on the backend; it is never sent to the browser.
+# Payments are simulated inside order-service (no payment gateway, no real
+# money): the customer fills in dummy details and the order is marked paid.
 payment:
-  razorpay:
-    key-id: ${RAZORPAY_KEY_ID:}
-    key-secret: ${RAZORPAY_KEY_SECRET:}
-  # An order that is still unpaid after this long can no longer start a payment.
+  # An order that is still unpaid after this long can no longer be paid.
   pending-order-ttl-minutes: ${PAYMENT_PENDING_ORDER_TTL_MINUTES:30}
 
 spring.kafka:

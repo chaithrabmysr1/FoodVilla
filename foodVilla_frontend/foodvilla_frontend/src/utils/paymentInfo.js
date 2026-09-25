@@ -3,8 +3,8 @@
 // pair into one honest label.
 //
 // paymentStatus values: PENDING, CONFIRMED (= paid), FAILED. "CONFIRMED" is the
-// value the database already used before Razorpay came back — see PaymentStatus
-// in order-service for why it isn't called PAID.
+// value the database already used before online payments came back — see
+// PaymentStatus in order-service for why it isn't called PAID.
 export const paymentInfo = (order) => {
   const stillWithUs = order.orderStatus === "CREATED";
 
@@ -38,8 +38,20 @@ export const orderHeadline = (order, statusLabel) => {
   return statusLabel(order.orderStatus);
 };
 
+const METHOD_LABELS = {
+  UPI: "UPI",
+  CARD: "Credit / Debit Card",
+  NETBANKING: "Net Banking",
+  PAYTM: "Paytm",
+  PAYPAL: "PayPal",
+};
+
+export const methodName = (method) => METHOD_LABELS[method] || null;
+
+// "UPI · as•••@okhdfcbank", "Credit / Debit Card · Visa •••• 1111".
 export const paymentMethodLabel = (order) => {
-  if (order.paymentProvider === "RAZORPAY_TEST") return "Razorpay (Test Mode)";
+  const name = methodName(order.paymentMethod);
+  if (name) return order.paymentDetail ? `${name} · ${order.paymentDetail}` : name;
   if (order.paymentId) return "Online payment";
   return null;
 };

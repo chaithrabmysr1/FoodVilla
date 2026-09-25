@@ -17,11 +17,11 @@ The removed source is still in git history, e.g.
 `git show 6ae3b56:foodVilla_backend/payment-service/pom.xml`, or restore a whole
 folder with `git checkout 6ae3b56 -- foodVilla_backend/payment-service`.
 
-> **Update:** online payment has since come back, but inside `order-service` (Razorpay
-> **test mode**), not as a separate service — see [PAYMENTS.md](PAYMENTS.md). The
-> "Placing an order … moves it to `RESTAURANT_PENDING` in the same request" behaviour
-> described below is therefore superseded: an order now stays `CREATED` until its
-> payment is verified. `payment-service`, `delivery-service`, `notification-service`
+> **Update:** online payment has since come back, but inside `order-service` and
+> **simulated** (dummy details, no gateway, no real money), not as a separate service —
+> see [PAYMENTS.md](PAYMENTS.md). The "Placing an order … moves it to
+> `RESTAURANT_PENDING` in the same request" behaviour described below is therefore
+> superseded: an order now stays `CREATED` until it is paid. `payment-service`, `delivery-service`, `notification-service`
 > and the mobile app remain removed.
 
 ## How the order flow changed
@@ -109,6 +109,6 @@ reject / preparing / ready).
 
 Delete these from your untracked root `.env` if present (Compose ignores them,
 so leaving them is harmless): `PAYMENT_PROVIDER`, `RAZORPAY_KEY_ID`,
-`RAZORPAY_KEY_SECRET`. On Render, delete `PAYMENT_SERVICE_URL`,
+`RAZORPAY_KEY_SECRET` (payments no longer use Razorpay at all). On Render, delete `PAYMENT_SERVICE_URL`,
 `DELIVERY_SERVICE_URL` and `NOTIFICATION_SERVICE_URL` from `api-gateway` if you
 had set them.

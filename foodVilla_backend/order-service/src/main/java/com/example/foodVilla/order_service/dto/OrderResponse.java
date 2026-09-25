@@ -23,6 +23,8 @@ public class OrderResponse {
     private String paymentId;
     private PaymentStatus paymentStatus;
     private String paymentProvider;
+    private String paymentMethod;
+    private String paymentDetail;
     private LocalDateTime paidAt;
     private String paymentFailureReason;
     private boolean paymentExpired;
@@ -76,6 +78,12 @@ public class OrderResponse {
 
     public String getPaymentProvider() { return paymentProvider; }
     public void setPaymentProvider(String paymentProvider) { this.paymentProvider = paymentProvider; }
+
+    public String getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
+
+    public String getPaymentDetail() { return paymentDetail; }
+    public void setPaymentDetail(String paymentDetail) { this.paymentDetail = paymentDetail; }
 
     public LocalDateTime getPaidAt() { return paidAt; }
     public void setPaidAt(LocalDateTime paidAt) { this.paidAt = paidAt; }

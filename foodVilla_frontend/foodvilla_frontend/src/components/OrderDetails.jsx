@@ -1,13 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { FaCheckCircle } from "react-icons/fa";
-import { useAuth } from "../context/AuthContext";
 import { cancelOrder, getOrderById } from "../services/orderApi";
-import { syncPayment } from "../services/paymentApi";
 import { money } from "../utils/format";
-import { describePaymentError, payForOrder } from "../utils/paymentFlow";
+import { SUCCESS_PAUSE_MS, payForOrder, sleep } from "../utils/paymentFlow";
 import { orderHeadline, paymentInfo, paymentMethodLabel } from "../utils/paymentInfo";
 import OrderStatusTimeline from "./OrderStatusTimeline";
+import PaymentMethods from "./PaymentMethods";
 import "../styles/OrderDetails.css";
 import "../styles/OrderConfirmation.css";
 import "../styles/Payment.css";
@@ -54,16 +53,14 @@ const OrderDetails = () => {
   const navigate = useNavigate();
   const justPlaced = Boolean(location.state?.justPlaced);
 
-  const { user } = useAuth();
-
   const [order, setOrder] = useState(null);
   const [error, setError] = useState("");
   const [cancelling, setCancelling] = useState(false);
-  // Paying an unpaid order from this page: idle -> starting -> verifying -> idle.
+  // Paying an unpaid order from this page: the payment-method screen is shown
+  // (payStep) and the payment goes idle -> processing -> success -> idle.
+  const [payStep, setPayStep] = useState(false);
   const [payPhase, setPayPhase] = useState("idle");
   const [payError, setPayError] = useState("");
-  const [payNotice, setPayNotice] = useState("");
-  const [unconfirmed, setUnconfirmed] = useState(null);
   const [justPaid, setJustPaid] = useState(false);
   const busyRef = useRef(false);
 
@@ -95,66 +92,28 @@ const OrderDetails = () => {
     return () => clearInterval(interval);
   }, [order, fetchOrder]);
 
-  const handlePay = async () => {
+  const handlePay = async (payment) => {
     if (busyRef.current || !order) return;
     busyRef.current = true;
-    setPayPhase("starting");
+    setPayPhase("processing");
     setPayError("");
-    setPayNotice("");
-    setUnconfirmed(null);
     try {
-      const result = await payForOrder(order, user, { onVerifying: () => setPayPhase("verifying") });
-      switch (result.outcome) {
-        case "paid":
-          setOrder(result.order);
-          setJustPaid(true);
-          break;
-        case "already-paid":
-          // The backend says it is paid — load it so the page shows the real state.
-          await fetchOrder();
-          setJustPaid(true);
-          break;
-        case "dismissed":
-          if (result.failure) {
-            setPayError(
-              `Payment failed${result.failure.description ? `: ${result.failure.description}` : ""}. You can try again.`
-            );
-          } else {
-            setPayNotice("Payment cancelled. Your order is still waiting — you can pay whenever you're ready.");
-          }
-          await fetchOrder();
-          break;
-        case "unconfirmed":
-          setUnconfirmed({ paymentId: result.paymentId });
-          break;
-        default:
-          setPayError(result.message);
-          await fetchOrder(); // e.g. it expired or was cancelled meanwhile
-      }
-    } finally {
-      busyRef.current = false;
-      setPayPhase("idle");
-    }
-  };
-
-  // Asks the backend to check with Razorpay whether a payment actually went through.
-  const handleCheckStatus = async () => {
-    if (busyRef.current) return;
-    busyRef.current = true;
-    setPayPhase("verifying");
-    setPayError("");
-    setPayNotice("");
-    try {
-      const res = await syncPayment(id);
-      setOrder(res.data);
-      if (res.data.paymentStatus === "CONFIRMED") {
-        setUnconfirmed(null);
+      const result = await payForOrder(order, payment);
+      if (result.outcome === "paid") {
+        setPayPhase("success");
+        await sleep(SUCCESS_PAUSE_MS);
+        setOrder(result.order);
         setJustPaid(true);
+        setPayStep(false);
+      } else if (result.outcome === "already-paid") {
+        // The backend says it is paid — load it so the page shows the real state.
+        await fetchOrder();
+        setJustPaid(true);
+        setPayStep(false);
       } else {
-        setPayNotice("No completed payment found for this order yet. If you were charged, wait a minute and check again.");
+        setPayError(result.message);
+        await fetchOrder(); // e.g. it expired or was cancelled meanwhile
       }
-    } catch (err) {
-      setPayError(describePaymentError(err).message);
     } finally {
       busyRef.current = false;
       setPayPhase("idle");
@@ -162,11 +121,7 @@ const OrderDetails = () => {
   };
 
   const handleCancel = async () => {
-    const message =
-      order?.paymentStatus === "CONFIRMED"
-        ? "Cancel this order? This is a test-mode demo: no refund is processed (no real money was charged)."
-        : "Cancel this order?";
-    if (!window.confirm(message)) return;
+    if (!window.confirm("Cancel this order?")) return;
     setCancelling(true);
     try {
       const res = await cancelOrder(id);
@@ -203,10 +158,33 @@ const OrderDetails = () => {
   // An unpaid CREATED order has not been placed with the restaurant yet.
   const unpaidHold = order.orderStatus === "CREATED" && payment.key !== "paid";
   const tone = unpaidHold ? payment.tone : statusTone(order.orderStatus);
-  const paying = payPhase !== "idle";
   // "Payment successful" is shown ONLY when the backend says the order is paid —
-  // never from navigation state or from what Razorpay Checkout reported.
+  // never from navigation state alone.
   const showHero = (justPlaced || justPaid) && order.paymentStatus === "CONFIRMED";
+
+  // Paying an unpaid order: the same payment-method screen as checkout. It only
+  // shows while the order can still be paid (it may expire or be cancelled).
+  if (payStep && payment.awaiting) {
+    return (
+      <PaymentMethods
+        quote={order}
+        cartItems={order.items.map((item) => ({
+          id: item.foodItemId,
+          itemName: item.itemName,
+          price: item.price,
+          quantity: item.quantity,
+        }))}
+        retrying={false}
+        phase={payPhase}
+        error={payError}
+        onPay={handlePay}
+        onBack={() => {
+          setPayError("");
+          setPayStep(false);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="oc-page">
@@ -224,7 +202,7 @@ const OrderDetails = () => {
               <FaCheckCircle aria-hidden="true" />
               <span>
                 <strong>Payment Successful</strong>
-                <small>Your Razorpay test payment was verified by FoodVilla</small>
+                <small>{method ? `Paid with ${method}` : "Your payment was received"}</small>
               </span>
             </li>
             <li>
@@ -241,7 +219,7 @@ const OrderDetails = () => {
               <dd>#{order.id}</dd>
             </div>
             <div>
-              <dt>Razorpay payment ID</dt>
+              <dt>Transaction ID</dt>
               <dd className="pay-mono">{order.paymentId}</dd>
             </div>
             <div>
@@ -267,10 +245,6 @@ const OrderDetails = () => {
               <dd>{order.items.map((item) => `${item.itemName} × ${item.quantity}`).join(", ")}</dd>
             </div>
           </dl>
-          <p className="pay-testnote">
-            <span className="pay-testbadge">TEST MODE</span>
-            Razorpay test payment — no real money was charged.
-          </p>
           <div className="pay-hero-actions">
             <button className="oc-btn primary" onClick={() => navigate("/orders")}>
               View My Orders
@@ -332,7 +306,7 @@ const OrderDetails = () => {
               )}
               {order.paymentId && (
                 <div>
-                  <dt>Payment ID</dt>
+                  <dt>Transaction ID</dt>
                   <dd className="pay-mono">{order.paymentId}</dd>
                 </div>
               )}
@@ -356,41 +330,20 @@ const OrderDetails = () => {
 
             {payment.awaiting && (
               <div className="pay-panel">
-                {payNotice && (
-                  <p className="pay-notice" role="status">
-                    {payNotice}
-                  </p>
-                )}
                 {payError && (
                   <p className="pay-error" role="alert">
                     {payError}
                   </p>
                 )}
-                {unconfirmed && (
-                  <div className="pay-unconfirmed" role="alert">
-                    <p>
-                      <strong>We haven&apos;t confirmed your payment yet.</strong> Razorpay returned
-                      payment <code>{unconfirmed.paymentId}</code>, but we couldn&apos;t verify it with
-                      our server. Your order is not confirmed yet, and you don&apos;t need to pay again.
-                    </p>
-                  </div>
-                )}
-                <button className="oc-btn primary" onClick={handlePay} disabled={paying}>
-                  {payPhase === "starting"
-                    ? "Waiting for payment..."
-                    : payPhase === "verifying"
-                      ? "Confirming your payment..."
-                      : payment.key === "failed"
-                        ? "Retry Payment"
-                        : "Pay Now"}
+                <button
+                  className="oc-btn primary"
+                  onClick={() => {
+                    setPayError("");
+                    setPayStep(true);
+                  }}
+                >
+                  {payment.key === "failed" ? "Retry Payment" : "Pay Now"}
                 </button>
-                <button className="pay-link-btn" onClick={handleCheckStatus} disabled={paying}>
-                  Already paid? Check payment status
-                </button>
-                <p className="pay-testnote">
-                  <span className="pay-testbadge">TEST MODE</span>
-                  Razorpay test payments only — no real money is charged.
-                </p>
               </div>
             )}
           </section>

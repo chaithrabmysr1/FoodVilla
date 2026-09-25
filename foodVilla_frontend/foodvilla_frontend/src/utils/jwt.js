@@ -1,6 +1,6 @@
 // Reads the claims out of the JWT the app already keeps in localStorage.
 // This is for UI convenience only (scoping saved checkout state to the current
-// user, prefilling Razorpay's form) — the backend never trusts anything the
+// user) — the backend never trusts anything the
 // browser decodes; it validates the token's signature on every request.
 export const tokenClaims = () => {
   try {

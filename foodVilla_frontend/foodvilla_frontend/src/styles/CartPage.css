@@ -248,6 +248,16 @@
   border-color: transparent;
 }
 
+/* Checkout button in the bill summary: the same orange as the "Add" buttons. */
+.ct-summary .ct-btn.primary {
+  background-color: #ff6600;
+}
+
+.ct-summary .ct-btn.primary:hover {
+  background-color: #e55a00;
+  border-color: transparent;
+}
+
 .ct-btn.secondary {
   background-color: #fff;
   border-color: #ff6600;

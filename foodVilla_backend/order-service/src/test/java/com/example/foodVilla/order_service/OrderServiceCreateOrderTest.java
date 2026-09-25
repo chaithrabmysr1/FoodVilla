@@ -44,7 +44,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * Placing an order only creates it. It is NOT handed to the restaurant until a
- * Razorpay payment has been verified (see PaymentServiceTest), so a new order
+ * payment has been recorded (see PaymentServiceTest), so a new order
  * stays CREATED with payment PENDING. The bill shown at checkout comes from the
  * same pricing code, via quote().
  */
@@ -88,14 +88,14 @@ class OrderServiceCreateOrderTest {
 
         Order order = result.order();
         assertThat(result.created()).isTrue();
-        // Not sent to the restaurant: that happens only once payment is verified.
+        // Not sent to the restaurant: that happens only once the payment is recorded.
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CREATED);
         assertThat(order.getStatusHistory())
                 .extracting(h -> h.getStatus())
                 .containsExactly(OrderStatus.CREATED);
         assertThat(order.getPaymentStatus()).isEqualTo(PaymentStatus.PENDING);
         assertThat(order.getPaymentId()).isNull();
-        assertThat(order.getRazorpayOrderId()).isNull();
+        assertThat(order.getPaymentMethod()).isNull();
         // 2 x 100 = 200 subtotal, + 40 delivery fee + 10 tax, computed server-side.
         assertThat(order.getSubtotalAmount()).isEqualByComparingTo("200");
         assertThat(order.getDeliveryFee()).isEqualByComparingTo("40.00");

@@ -96,16 +96,12 @@ different things depending on which service reads them). Inside
 Docker-network-shaped value hardcoded — you don't need to think about that
 gotcha unless you're changing the compose file itself.
 
-## Payments (Razorpay test mode)
+## Payments (simulated)
 
-Paying for an order needs Razorpay **test** keys in your untracked `.env`
-(`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`); `docker-compose.yml` passes them to
-`order-service` only, at run time — they are not part of any image and the `web`
-build never sees them. Without them everything except paying works and checkout
-says online payment is unavailable. After adding keys:
-`docker compose up -d --build order-service web`. Full walkthrough, including the
-test card details: [PAYMENTS.md](PAYMENTS.md). This is a demo integration — no real
-money is processed.
+Checkout takes dummy UPI / card / net banking / Paytm / PayPal details and marks the
+order paid — no keys, no `.env` entries and no real money. After changing payment code:
+`docker compose up -d --build order-service web`. Details and sample dummy values:
+[PAYMENTS.md](PAYMENTS.md).
 
 ## Docker-internal URLs vs. browser URLs — do not mix these up
 

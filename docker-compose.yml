@@ -174,12 +174,6 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       ORDER_DELIVERY_FEE: ${ORDER_DELIVERY_FEE:-40}
       ORDER_TAX_RATE: ${ORDER_TAX_RATE:-0.05}
-      # Razorpay TEST MODE keys (see PAYMENTS.md). Read from the untracked .env at
-      # run time and passed only to this container — never baked into an image,
-      # never given to the web build. Empty is fine: the service still starts and
-      # payment endpoints answer 503 PAYMENT_NOT_CONFIGURED.
-      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
-      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
       PAYMENT_PENDING_ORDER_TTL_MINUTES: ${PAYMENT_PENDING_ORDER_TTL_MINUTES:-30}
     depends_on:
       mysql:

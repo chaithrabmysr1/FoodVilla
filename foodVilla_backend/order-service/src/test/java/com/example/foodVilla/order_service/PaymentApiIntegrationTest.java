@@ -9,8 +9,6 @@ import com.example.foodVilla.order_service.entity.OrderStatus;
 import com.example.foodVilla.order_service.entity.OrderStatusHistory;
 import com.example.foodVilla.order_service.entity.PaymentStatus;
 import com.example.foodVilla.order_service.messaging.OrderEventPublisher;
-import com.example.foodVilla.order_service.payment.RazorpayGateway;
-import com.example.foodVilla.order_service.payment.RazorpaySdkGateway;
 import com.example.foodVilla.order_service.repository.OrderRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,9 +20,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -33,18 +28,14 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.client.RestTemplate;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -61,44 +52,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * End-to-end over HTTP with the real controller, Spring Security (JWT), JPA and
- * row locking — against in-memory H2, with no Kafka broker and no Razorpay
- * network access. Only Razorpay's two network calls are stubbed; the payment
- * signature check is the real razorpay-java one.
+ * row locking — against in-memory H2, with no Kafka broker. Payments are
+ * simulated, so nothing external needs stubbing.
  */
-@SpringBootTest(properties = {
-        "payment.razorpay.key-id=rzp_test_IntegrationKeyId",
-        "payment.razorpay.key-secret=" + PaymentApiIntegrationTest.SECRET
-})
+@SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("payment-it")
 class PaymentApiIntegrationTest {
 
-    static final String SECRET = "integration-test-secret-not-real";
     private static final String JWT_SECRET = "payment-integration-test-signing-key-0123456789abcdef";
-
-    /** Real signature verification, stubbed network. */
-    @TestConfiguration
-    static class StubbedRazorpay {
-        static final AtomicInteger ORDERS_CREATED = new AtomicInteger();
-        static volatile long lastAmountPaise;
-
-        @Bean
-        @Primary
-        RazorpayGateway razorpayGateway() {
-            return new RazorpaySdkGateway("rzp_test_IntegrationKeyId", SECRET) {
-                @Override
-                public RazorpayOrder createOrder(long amountPaise, String currency, String receipt, Map<String, String> notes) {
-                    lastAmountPaise = amountPaise;
-                    return new RazorpayOrder("order_IT" + ORDERS_CREATED.incrementAndGet(), amountPaise, currency);
-                }
-
-                @Override
-                public List<RazorpayPayment> fetchPayments(String razorpayOrderId) {
-                    return List.of();
-                }
-            };
-        }
-    }
 
     @Autowired private MockMvc mvc;
     @Autowired private OrderRepository orderRepository;
@@ -120,36 +82,18 @@ class PaymentApiIntegrationTest {
     // ---- access control -------------------------------------------------
 
     @Test
-    void everyPaymentEndpointRequiresLogin() throws Exception {
+    void payingRequiresLogin() throws Exception {
         Order order = savedOrder(7L);
 
-        mvc.perform(get("/api/orders/payment/config")).andExpect(status().isUnauthorized());
-        mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/create", null, "{}"))
-                .andExpect(status().isUnauthorized());
-        mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/verify", null, verifyBody("o", "p", "s")))
-                .andExpect(status().isUnauthorized());
-        mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/failure", null, "{\"razorpayOrderId\":\"o\"}"))
-                .andExpect(status().isUnauthorized());
-        mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/sync", null, ""))
+        mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/pay", null, payBody("UPI")))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void anotherUserGetsForbiddenOnEveryPaymentEndpointAndChangesNothing() throws Exception {
+    void anotherUserGetsForbiddenAndChangesNothing() throws Exception {
         Order order = savedOrder(7L);
-        String razorpayOrderId = startPayment(order, owner);
-        String payment = "pay_Stolen1";
 
-        mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/create", otherUser, "{}"))
-                .andExpect(status().isForbidden());
-        // Even a perfectly valid signature must not let a stranger settle someone else's order.
-        mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/verify", otherUser,
-                        verifyBody(razorpayOrderId, payment, sign(razorpayOrderId, payment))))
-                .andExpect(status().isForbidden());
-        mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/failure", otherUser,
-                        "{\"razorpayOrderId\":\"" + razorpayOrderId + "\"}"))
-                .andExpect(status().isForbidden());
-        mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/sync", otherUser, ""))
+        mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/pay", otherUser, payBody("UPI")))
                 .andExpect(status().isForbidden());
 
         Order reloaded = orderRepository.findById(order.getId()).orElseThrow();
@@ -162,53 +106,25 @@ class PaymentApiIntegrationTest {
     void anAdminMayPayOnBehalfOfACustomer() throws Exception {
         Order order = savedOrder(7L);
 
-        mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/create", admin, "{}"))
+        mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/pay", admin, payBody("UPI")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.razorpayOrderId").exists());
-    }
-
-    // ---- amount / secret -------------------------------------------------
-
-    @Test
-    void createChargesTheStoredAmountAndReturnsOnlyPublicValues() throws Exception {
-        Order order = savedOrder(7L);
-
-        MvcResult result = mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/create", owner, "{}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.orderId").value(order.getId()))
-                .andExpect(jsonPath("$.amount").value(25000))
-                .andExpect(jsonPath("$.currency").value("INR"))
-                .andExpect(jsonPath("$.keyId").value("rzp_test_IntegrationKeyId"))
-                .andExpect(jsonPath("$.razorpayOrderId").value(org.hamcrest.Matchers.startsWith("order_")))
-                .andReturn();
-
-        assertThat(StubbedRazorpay.lastAmountPaise).isEqualTo(25000L);
-        // The response is the whole payload the browser gets — the secret must not be in it.
-        assertThat(result.getResponse().getContentAsString()).doesNotContain(SECRET).doesNotContainIgnoringCase("secret");
+                .andExpect(jsonPath("$.paymentStatus").value("CONFIRMED"));
     }
 
     @Test
-    void aTamperedClientAmountIsRefused() throws Exception {
+    void theRemovedRazorpayEndpointsAreGone() throws Exception {
         Order order = savedOrder(7L);
 
-        mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/create", owner, "{\"amount\": 1}"))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("AMOUNT_MISMATCH"));
-
-        assertThat(orderRepository.findById(order.getId()).orElseThrow().getRazorpayOrderId()).isNull();
+        for (String path : new String[]{"create", "verify", "failure", "sync"}) {
+            int status = mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/" + path, owner, "{}"))
+                    .andReturn().getResponse().getStatus();
+            assertThat(status).as(path).isNotEqualTo(200);
+        }
+        assertThat(orderRepository.findById(order.getId()).orElseThrow().getPaymentStatus())
+                .isEqualTo(PaymentStatus.PENDING);
     }
 
-    @Test
-    void aMatchingAmountIsAcceptedAndRepeatingCreateReturnsTheSameRazorpayOrder() throws Exception {
-        Order order = savedOrder(7L);
-
-        String first = startPayment(order, owner, "{\"amount\": 250.00}");
-        String second = startPayment(order, owner, "{\"amount\": 250}");
-
-        assertThat(second).isEqualTo(first);
-    }
-
-    // ---- the full flow ---------------------------------------------------
+    // ---- the flow --------------------------------------------------------
 
     @Test
     void placingAnOrderDoesNotSendItToTheRestaurantUntilItIsPaid() throws Exception {
@@ -218,11 +134,7 @@ class PaymentApiIntegrationTest {
                         .header("Authorization", "Bearer " + owner)
                         .header("Idempotency-Key", "checkout-1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"restaurantId":5,
-                                 "items":[{"foodItemId":11,"quantity":2}],
-                                 "deliveryAddress":{"recipientName":"A Diner","phone":"9999999999",
-                                   "addressLine1":"1 Main St","city":"Mysuru","state":"Karnataka","pincode":"570001"}}"""))
+                        .content(orderBody()))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.orderStatus").value("CREATED"))
                 .andExpect(jsonPath("$.paymentStatus").value("PENDING"))
@@ -235,161 +147,134 @@ class PaymentApiIntegrationTest {
                         .header("Authorization", "Bearer " + owner)
                         .header("Idempotency-Key", "checkout-1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"restaurantId":5,"items":[{"foodItemId":11,"quantity":2}],
-                                 "deliveryAddress":{"recipientName":"A Diner","phone":"9999999999",
-                                   "addressLine1":"1 Main St","city":"Mysuru","state":"Karnataka","pincode":"570001"}}"""))
+                        .content(orderBody()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(orderId));
         assertThat(orderRepository.count()).isEqualTo(1);
 
-        String razorpayOrderId = startPayment(orderId, owner, "{}");
-        String payment = "pay_IT1";
-        mvc.perform(jsonPost("/api/orders/" + orderId + "/payment/verify", owner,
-                        verifyBody(razorpayOrderId, payment, sign(razorpayOrderId, payment))))
+        mvc.perform(jsonPost("/api/orders/" + orderId + "/payment/pay", owner,
+                        "{\"method\":\"CARD\",\"detail\":\"Visa •••• 1111\",\"amount\":250}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.orderStatus").value("RESTAURANT_PENDING"))
                 .andExpect(jsonPath("$.paymentStatus").value("CONFIRMED"))
-                .andExpect(jsonPath("$.paymentId").value(payment))
-                .andExpect(jsonPath("$.paymentProvider").value("RAZORPAY_TEST"))
+                .andExpect(jsonPath("$.paymentId").value(org.hamcrest.Matchers.matchesPattern("FVPAY[A-Z2-9]{12}")))
+                .andExpect(jsonPath("$.paymentProvider").value("DEMO"))
+                .andExpect(jsonPath("$.paymentMethod").value("CARD"))
+                .andExpect(jsonPath("$.paymentDetail").value("Visa •••• 1111"))
                 .andExpect(jsonPath("$.paidAt").exists());
-    }
 
-    @Test
-    void aBadSignatureIsRejectedAndAGoodOneIsAppliedExactlyOnceEvenWhenRepeated() throws Exception {
-        Order order = savedOrder(7L);
-        String razorpayOrderId = startPayment(order, owner);
-        String payment = "pay_IT2";
-
-        mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/verify", owner,
-                        verifyBody(razorpayOrderId, payment, "0".repeat(64))))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_SIGNATURE"));
-        mvc.perform(get("/api/orders/" + order.getId()).header("Authorization", "Bearer " + owner))
-                .andExpect(jsonPath("$.paymentStatus").value("PENDING"))
-                .andExpect(jsonPath("$.orderStatus").value("CREATED"));
-
-        String good = verifyBody(razorpayOrderId, payment, sign(razorpayOrderId, payment));
-        for (int i = 0; i < 3; i++) {
-            mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/verify", owner, good))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.paymentStatus").value("CONFIRMED"))
-                    .andExpect(jsonPath("$.orderStatus").value("RESTAURANT_PENDING"));
-        }
-
-        assertThat(historyStatuses(order.getId()))
-                .containsExactly(OrderStatus.CREATED, OrderStatus.RESTAURANT_PENDING);
-        verify(eventPublisher, times(1)).publishStatusChanged(any(Order.class), eq(OrderStatus.CREATED), anyString());
-    }
-
-    @Test
-    void simultaneousVerificationsApplyThePaymentOnce() throws Exception {
-        Order order = savedOrder(7L);
-        String razorpayOrderId = startPayment(order, owner);
-        String payment = "pay_IT3";
-        String body = verifyBody(razorpayOrderId, payment, sign(razorpayOrderId, payment));
-
-        int callers = 6;
-        ExecutorService pool = Executors.newFixedThreadPool(callers);
-        try {
-            List<Callable<Integer>> calls = new java.util.ArrayList<>();
-            for (int i = 0; i < callers; i++) {
-                calls.add(() -> mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/verify", owner, body))
-                        .andReturn().getResponse().getStatus());
-            }
-            for (Future<Integer> result : pool.invokeAll(calls)) {
-                assertThat(result.get()).isEqualTo(200);
-            }
-        } finally {
-            pool.shutdownNow();
-        }
-
-        assertThat(historyStatuses(order.getId()))
-                .containsExactly(OrderStatus.CREATED, OrderStatus.RESTAURANT_PENDING);
-        verify(eventPublisher, times(1)).publishStatusChanged(any(Order.class), eq(OrderStatus.CREATED), anyString());
-    }
-
-    @Test
-    void aRazorpayOrderThatBelongsToAnotherOrderIsRejected() throws Exception {
-        Order mine = savedOrder(7L);
-        Order theirs = savedOrder(8L);
-        String myRazorpayOrder = startPayment(mine, owner);
-        String theirRazorpayOrder = startPayment(theirs, otherUser);
-        String payment = "pay_IT4";
-
-        // A payment legitimately made for THEIR order, replayed against MY order.
-        mvc.perform(jsonPost("/api/orders/" + mine.getId() + "/payment/verify", owner,
-                        verifyBody(theirRazorpayOrder, payment, sign(theirRazorpayOrder, payment))))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("PAYMENT_ORDER_MISMATCH"));
-
-        assertThat(orderRepository.findById(mine.getId()).orElseThrow().getPaymentStatus()).isEqualTo(PaymentStatus.PENDING);
-        assertThat(myRazorpayOrder).isNotEqualTo(theirRazorpayOrder);
-    }
-
-    // ---- already paid / failure / retry ---------------------------------
-
-    @Test
-    void anAlreadyPaidOrderCannotStartAnotherPayment() throws Exception {
-        Order order = savedOrder(7L);
-        String razorpayOrderId = startPayment(order, owner);
-        mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/verify", owner,
-                verifyBody(razorpayOrderId, "pay_IT5", sign(razorpayOrderId, "pay_IT5")))).andExpect(status().isOk());
-
-        mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/create", owner, "{}"))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("ORDER_ALREADY_PAID"));
-
-        // and a second, different payment cannot replace the first
-        mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/verify", owner,
-                        verifyBody(razorpayOrderId, "pay_IT5b", sign(razorpayOrderId, "pay_IT5b"))))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("ORDER_ALREADY_PAID"));
-        assertThat(orderRepository.findById(order.getId()).orElseThrow().getPaymentId()).isEqualTo("pay_IT5");
-    }
-
-    @Test
-    void aFailedAttemptCanBeRetriedAndThenPaid() throws Exception {
-        Order order = savedOrder(7L);
-        String razorpayOrderId = startPayment(order, owner);
-
-        mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/failure", owner,
-                        "{\"razorpayOrderId\":\"" + razorpayOrderId
-                                + "\",\"code\":\"BAD_REQUEST_ERROR\",\"description\":\"Card declined\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.paymentStatus").value("FAILED"))
-                .andExpect(jsonPath("$.paymentFailureReason").value("BAD_REQUEST_ERROR: Card declined"))
-                .andExpect(jsonPath("$.orderStatus").value("CREATED"));
-
-        // Retry: same Razorpay order, back to PENDING.
-        assertThat(startPayment(order, owner)).isEqualTo(razorpayOrderId);
-        mvc.perform(get("/api/orders/" + order.getId()).header("Authorization", "Bearer " + owner))
-                .andExpect(jsonPath("$.paymentStatus").value("PENDING"))
-                .andExpect(jsonPath("$.paymentFailureReason").doesNotExist());
-
-        mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/verify", owner,
-                        verifyBody(razorpayOrderId, "pay_IT6", sign(razorpayOrderId, "pay_IT6"))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.paymentStatus").value("CONFIRMED"));
-    }
-
-    @Test
-    void aFailureReportCanNeverUndoAPaidOrder() throws Exception {
-        Order order = savedOrder(7L);
-        String razorpayOrderId = startPayment(order, owner);
-        mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/verify", owner,
-                verifyBody(razorpayOrderId, "pay_IT7", sign(razorpayOrderId, "pay_IT7")))).andExpect(status().isOk());
-
-        mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/failure", owner,
-                        "{\"razorpayOrderId\":\"" + razorpayOrderId + "\",\"description\":\"late failure event\"}"))
-                .andExpect(status().isOk())
+        // The stored order matches what the API said.
+        mvc.perform(get("/api/orders/" + orderId).header("Authorization", "Bearer " + owner))
                 .andExpect(jsonPath("$.paymentStatus").value("CONFIRMED"))
                 .andExpect(jsonPath("$.orderStatus").value("RESTAURANT_PENDING"));
     }
 
     @Test
+    void everySupportedMethodCanPay() throws Exception {
+        for (String method : new String[]{"UPI", "CARD", "NETBANKING", "PAYTM", "PAYPAL"}) {
+            Order order = savedOrder(7L);
+
+            mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/pay", owner, payBody(method)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.paymentMethod").value(method))
+                    .andExpect(jsonPath("$.paymentStatus").value("CONFIRMED"));
+        }
+    }
+
+    @Test
+    void anUnknownMethodIsRejectedWithAClearCode() throws Exception {
+        Order order = savedOrder(7L);
+
+        mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/pay", owner, payBody("BITCOIN")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_PAYMENT_METHOD"));
+        mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/pay", owner, "{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"));
+
+        assertThat(orderRepository.findById(order.getId()).orElseThrow().getPaymentStatus())
+                .isEqualTo(PaymentStatus.PENDING);
+    }
+
+    @Test
+    void aTamperedClientAmountIsRefused() throws Exception {
+        Order order = savedOrder(7L);
+
+        mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/pay", owner,
+                        "{\"method\":\"UPI\",\"amount\":1}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("AMOUNT_MISMATCH"));
+
+        assertThat(orderRepository.findById(order.getId()).orElseThrow().getPaymentStatus())
+                .isEqualTo(PaymentStatus.PENDING);
+    }
+
+    @Test
+    void anAlreadyPaidOrderIsNotPaidTwice() throws Exception {
+        Order order = savedOrder(7L);
+        mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/pay", owner, payBody("UPI")))
+                .andExpect(status().isOk());
+        String receipt = orderRepository.findById(order.getId()).orElseThrow().getPaymentId();
+
+        mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/pay", owner, payBody("CARD")))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ORDER_ALREADY_PAID"));
+
+        Order reloaded = orderRepository.findById(order.getId()).orElseThrow();
+        assertThat(reloaded.getPaymentId()).isEqualTo(receipt);
+        assertThat(reloaded.getPaymentMethod()).isEqualTo("UPI");
+        assertThat(historyStatuses(order.getId()))
+                .containsExactly(OrderStatus.CREATED, OrderStatus.RESTAURANT_PENDING);
+        verify(eventPublisher, times(1)).publishStatusChanged(any(Order.class), eq(OrderStatus.CREATED), anyString());
+    }
+
+    @Test
+    void simultaneousPaymentsPayTheOrderExactlyOnce() throws Exception {
+        Order order = savedOrder(7L);
+
+        int callers = 6;
+        ExecutorService pool = Executors.newFixedThreadPool(callers);
+        int ok = 0;
+        int conflicts = 0;
+        try {
+            List<Callable<Integer>> calls = new ArrayList<>();
+            for (int i = 0; i < callers; i++) {
+                calls.add(() -> mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/pay", owner, payBody("UPI")))
+                        .andReturn().getResponse().getStatus());
+            }
+            for (Future<Integer> result : pool.invokeAll(calls)) {
+                int status = result.get();
+                if (status == 200) {
+                    ok++;
+                } else if (status == 409) {
+                    conflicts++;
+                }
+            }
+        } finally {
+            pool.shutdownNow();
+        }
+
+        assertThat(ok).isEqualTo(1);
+        assertThat(conflicts).isEqualTo(callers - 1);
+        assertThat(historyStatuses(order.getId()))
+                .containsExactly(OrderStatus.CREATED, OrderStatus.RESTAURANT_PENDING);
+        verify(eventPublisher, times(1)).publishStatusChanged(any(Order.class), eq(OrderStatus.CREATED), anyString());
+    }
+
+    @Test
+    void aCancelledOrderCannotBePaid() throws Exception {
+        Order order = savedOrder(7L);
+        order.setOrderStatus(OrderStatus.CANCELLED);
+        orderRepository.save(order);
+
+        mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/pay", owner, payBody("UPI")))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ORDER_NOT_PAYABLE"));
+    }
+
+    @Test
     void ordersPlacedBeforeOnlinePaymentsExistedStillLoadAndAreNotPayable() throws Exception {
-        // Existing rows: no razorpay/paid columns, already with the restaurant, payment_status PENDING.
+        // Existing rows: no payment columns, already with the restaurant, payment_status PENDING.
         Order legacy = savedOrder(7L);
         legacy.setOrderStatus(OrderStatus.RESTAURANT_PENDING);
         orderRepository.save(legacy);
@@ -398,37 +283,20 @@ class PaymentApiIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.paymentStatus").value("PENDING"))
                 .andExpect(jsonPath("$.paymentExpired").value(false))
-                .andExpect(jsonPath("$.paymentId").doesNotExist());
-        mvc.perform(jsonPost("/api/orders/" + legacy.getId() + "/payment/create", owner, "{}"))
+                .andExpect(jsonPath("$.paymentId").doesNotExist())
+                .andExpect(jsonPath("$.paymentMethod").doesNotExist());
+        mvc.perform(jsonPost("/api/orders/" + legacy.getId() + "/payment/pay", owner, payBody("UPI")))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("ORDER_NOT_PAYABLE"));
     }
 
-    // ---- validation / config --------------------------------------------
-
     @Test
-    void verifyRequiresAllThreeFields() throws Exception {
-        Order order = savedOrder(7L);
-
-        mvc.perform(jsonPost("/api/orders/" + order.getId() + "/payment/verify", owner,
-                        "{\"razorpayOrderId\":\"\",\"razorpayPaymentId\":\"p\"}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Validation failed"));
-    }
-
-    @Test
-    void verifyOnAnUnknownOrderIsNotFound() throws Exception {
-        mvc.perform(jsonPost("/api/orders/999999/payment/verify", owner, verifyBody("o", "p", "s")))
+    void payingAnUnknownOrderIsNotFound() throws Exception {
+        mvc.perform(jsonPost("/api/orders/999999/payment/pay", owner, payBody("UPI")))
                 .andExpect(status().isNotFound());
     }
 
-    @Test
-    void configSaysPaymentsAreAvailableInTestMode() throws Exception {
-        mvc.perform(get("/api/orders/payment/config").header("Authorization", "Bearer " + owner))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.available").value(true))
-                .andExpect(jsonPath("$.mode").value("TEST"));
-    }
+    // ---- quote -----------------------------------------------------------
 
     @Test
     void quotePricesACartWithoutCreatingAnything() throws Exception {
@@ -446,21 +314,6 @@ class PaymentApiIntegrationTest {
 
     // ---- helpers ---------------------------------------------------------
 
-    private String startPayment(Order order, String bearer) throws Exception {
-        return startPayment(order.getId(), bearer, "{}");
-    }
-
-    private String startPayment(Order order, String bearer, String body) throws Exception {
-        return startPayment(order.getId(), bearer, body);
-    }
-
-    private String startPayment(long orderId, String bearer, String body) throws Exception {
-        MvcResult result = mvc.perform(jsonPost("/api/orders/" + orderId + "/payment/create", bearer, body))
-                .andExpect(status().isOk()).andReturn();
-        JsonNode node = json.readTree(result.getResponse().getContentAsString());
-        return node.get("razorpayOrderId").asText();
-    }
-
     private MockHttpServletRequestBuilder jsonPost(String url, String bearer, String body) {
         MockHttpServletRequestBuilder request = post(url).contentType(MediaType.APPLICATION_JSON).content(body);
         if (bearer != null) {
@@ -469,9 +322,16 @@ class PaymentApiIntegrationTest {
         return request;
     }
 
-    private static String verifyBody(String razorpayOrderId, String paymentId, String signature) {
-        return "{\"razorpayOrderId\":\"" + razorpayOrderId + "\",\"razorpayPaymentId\":\"" + paymentId
-                + "\",\"razorpaySignature\":\"" + signature + "\"}";
+    private static String payBody(String method) {
+        return "{\"method\":\"" + method + "\"}";
+    }
+
+    private static String orderBody() {
+        return """
+                {"restaurantId":5,
+                 "items":[{"foodItemId":11,"quantity":2}],
+                 "deliveryAddress":{"recipientName":"A Diner","phone":"9999999999",
+                   "addressLine1":"1 Main St","city":"Mysuru","state":"Karnataka","pincode":"570001"}}""";
     }
 
     // The lazily-loaded history is read the way a client sees it: over HTTP.
@@ -479,7 +339,7 @@ class PaymentApiIntegrationTest {
         try {
             MvcResult result = mvc.perform(get("/api/orders/" + orderId).header("Authorization", "Bearer " + owner))
                     .andExpect(status().isOk()).andReturn();
-            List<OrderStatus> statuses = new java.util.ArrayList<>();
+            List<OrderStatus> statuses = new ArrayList<>();
             for (JsonNode entry : json.readTree(result.getResponse().getContentAsString()).get("statusHistory")) {
                 statuses.add(OrderStatus.valueOf(entry.get("status").asText()));
             }
@@ -541,19 +401,5 @@ class PaymentApiIntegrationTest {
                 .setExpiration(new Date(System.currentTimeMillis() + 3_600_000))
                 .signWith(Keys.hmacShaKeyFor(JWT_SECRET.getBytes()), SignatureAlgorithm.HS256)
                 .compact();
-    }
-
-    private static String sign(String orderId, String paymentId) {
-        try {
-            Mac mac = Mac.getInstance("HmacSHA256");
-            mac.init(new SecretKeySpec(SECRET.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
-            StringBuilder hex = new StringBuilder();
-            for (byte b : mac.doFinal((orderId + "|" + paymentId).getBytes(StandardCharsets.UTF_8))) {
-                hex.append(String.format("%02x", b));
-            }
-            return hex.toString();
-        } catch (Exception ex) {
-            throw new IllegalStateException(ex);
-        }
     }
 }

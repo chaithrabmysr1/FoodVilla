@@ -3,10 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import confetti from "canvas-confetti";
 import { useAuth } from "../context/AuthContext";
 import { createOrder, getMyOrders, getOrderById, getOrderQuote } from "../services/orderApi";
-import { getPaymentConfig, syncPayment } from "../services/paymentApi";
 import { FOOD_PLACEHOLDER, money } from "../utils/format";
 import PaymentMethods from "./PaymentMethods";
-import { describePaymentError, payForOrder } from "../utils/paymentFlow";
+import { SUCCESS_PAUSE_MS, describePaymentError, payForOrder, sleep } from "../utils/paymentFlow";
 import {
   checkoutSignature,
   clearPendingCheckout,
@@ -60,21 +59,17 @@ const Checkout = () => {
   const [needsFallback] = useState(() => !isComplete(addressFromProfile(user)));
   const [loadingAddress, setLoadingAddress] = useState(needsFallback);
   const [editing, setEditing] = useState(false);
-  // "review" (address + items + bill) -> "methods" (choose how to pay). Nothing is
-  // created until Razorpay is chosen on the methods step.
+  // "review" (address + items + bill) -> "methods" (choose how to pay and fill in
+  // the details). Nothing is created until Pay is pressed on the methods step.
   const [step, setStep] = useState("review");
-  // idle -> creating (placing the unpaid order) -> paying (Razorpay Checkout is
-  // open) -> verifying (the backend is checking the payment) -> idle.
+  // idle -> creating (placing the unpaid order) -> processing (the payment is
+  // being recorded) -> success (shown briefly before the order page) -> idle.
   const [phase, setPhase] = useState("idle");
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
   const [quote, setQuote] = useState(null);
   const [quoteError, setQuoteError] = useState("");
-  const [paymentConfig, setPaymentConfig] = useState(null);
-  // An order exists for this cart but isn't paid yet (payment cancelled/failed).
+  // An order exists for this cart but isn't paid yet (the payment didn't go through).
   const [unpaidOrderId, setUnpaidOrderId] = useState(null);
-  // Razorpay took a payment but the backend couldn't confirm it yet.
-  const [unconfirmed, setUnconfirmed] = useState(null);
   // Blocks a second click before React has re-rendered the disabled button.
   const busyRef = useRef(false);
 
@@ -152,35 +147,14 @@ const Checkout = () => {
     };
   }, [cartItems, restaurantId]);
 
-  // Can we take a payment at all? (Razorpay test keys configured on the server.)
-  useEffect(() => {
-    let cancelled = false;
-    getPaymentConfig()
-      .then((res) => {
-        if (!cancelled) setPaymentConfig(res.data);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setPaymentConfig({
-            available: false,
-            mode: "TEST",
-            message: "We couldn't check whether online payment is available. Please try again.",
-          });
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   // Coming back to checkout after a refresh or a closed tab: if an order was
-  // already created for this checkout, ask the backend (which asks Razorpay)
-  // whether it was actually paid before offering to pay again.
+  // already created for this checkout, ask the backend whether it was actually
+  // paid before offering to pay again.
   useEffect(() => {
     const pending = readPendingCheckout();
     if (!pending?.orderId) return;
     let cancelled = false;
-    syncPayment(pending.orderId)
+    getOrderById(pending.orderId)
       .then((res) => {
         if (cancelled) return;
         const order = res.data;
@@ -193,7 +167,7 @@ const Checkout = () => {
         }
       })
       .catch(() => {
-        // Recovery is best effort (payments may be unconfigured, or the order gone).
+        // Recovery is best effort (the order may be gone).
       });
     return () => {
       cancelled = true;
@@ -219,6 +193,8 @@ const Checkout = () => {
   const handleOutcome = async (result, order) => {
     switch (result.outcome) {
       case "paid":
+        setPhase("success");
+        await sleep(SUCCESS_PAUSE_MS);
         finishSuccess(result.order);
         break;
       case "already-paid":
@@ -233,21 +209,6 @@ const Checkout = () => {
         }
         setError("This order appears to be paid, but we couldn't load its status. Check My Orders.");
         break;
-      case "dismissed":
-        if (result.failure) {
-          setError(
-            `Payment failed${result.failure.description ? `: ${result.failure.description}` : ""}. ` +
-              "Your order is saved — you can try again."
-          );
-        } else {
-          setNotice(
-            "Payment cancelled. Your order is saved but not paid — choose Razorpay again whenever you're ready."
-          );
-        }
-        break;
-      case "unconfirmed":
-        setUnconfirmed({ orderId: order.id, paymentId: result.paymentId });
-        break;
       default:
         setError(result.message);
         // The order can no longer be paid: the next attempt must start a new one.
@@ -258,27 +219,23 @@ const Checkout = () => {
     }
   };
 
-  // "Proceed to Payment": go to the payment methods screen. Nothing is created yet
-  // and Razorpay is not opened — that happens only when Razorpay is chosen there.
+  // "Proceed to Payment": go to the payment methods screen. Nothing is created yet;
+  // that happens when Pay is pressed there.
   const handleProceed = (e) => {
     e.preventDefault();
     if (busyRef.current || !quote || !addressComplete) return;
     setError("");
-    setNotice("");
     setStep("methods");
   };
 
-  // The customer chose Razorpay: place the (unpaid) order, start the Razorpay
-  // payment for it and open Razorpay Checkout in TEST MODE. The order only leaves
-  // CREATED — and only reaches the restaurant — once the backend has verified the
-  // payment.
-  const payWithRazorpay = async (method = "razorpay") => {
-    if (busyRef.current || !quote || !paymentConfig?.available) return;
+  // The customer chose a method, filled in its details and pressed Pay: place the
+  // (unpaid) order, then pay it. The order only leaves CREATED — and only reaches
+  // the restaurant — once the backend has recorded the payment.
+  const payWithMethod = async (payment) => {
+    if (busyRef.current || !quote) return;
     busyRef.current = true;
     setPhase("creating");
     setError("");
-    setNotice("");
-    setUnconfirmed(null);
 
     try {
       const { signature, key } = idempotencyKeyFor();
@@ -310,7 +267,7 @@ const Checkout = () => {
         return;
       }
 
-      // The order's own total is what gets charged. If a price changed since the
+      // The order's own total is what gets paid. If a price changed since the
       // bill on screen was calculated, show the new figures and stop here.
       if (Number(order.finalAmount) !== Number(quote.finalAmount)) {
         setQuote((prev) => ({
@@ -321,41 +278,14 @@ const Checkout = () => {
           discountAmount: order.discountAmount,
           finalAmount: order.finalAmount,
         }));
-        setError(
-          `The total changed to ${money(order.finalAmount)}. Please review it, then choose Razorpay again.`
-        );
+        setError(`The total changed to ${money(order.finalAmount)}. Please review it and pay again.`);
         return;
       }
 
       setUnpaidOrderId(order.id);
-      setPhase("paying");
-      const result = await payForOrder(order, user, {
-        onVerifying: () => setPhase("verifying"),
-        method,
-      });
+      setPhase("processing");
+      const result = await payForOrder(order, payment);
       await handleOutcome(result, order);
-    } finally {
-      busyRef.current = false;
-      setPhase("idle");
-    }
-  };
-
-  const handleCheckStatus = async () => {
-    if (busyRef.current || !unconfirmed) return;
-    busyRef.current = true;
-    setPhase("verifying");
-    setError("");
-    try {
-      const res = await syncPayment(unconfirmed.orderId);
-      if (res.data.paymentStatus === "CONFIRMED") {
-        finishSuccess(res.data);
-        return;
-      }
-      setError(
-        "We still can't see a completed payment for this order. If you were charged, wait a minute and check again."
-      );
-    } catch (err) {
-      setError(describePaymentError(err).message);
     } finally {
       busyRef.current = false;
       setPhase("idle");
@@ -407,57 +337,20 @@ const Checkout = () => {
     </>
   );
 
-  // What happened on the last attempt. Shown next to the action that caused it.
-  const messages = (
-    <>
-      {notice && (
-        <p className="pay-notice" role="status">
-          {notice}
-        </p>
-      )}
-      {error && (
-        <p className="co-error" role="alert">
-          {error}
-        </p>
-      )}
-      {unconfirmed && (
-        <div className="pay-unconfirmed" role="alert">
-          <p>
-            <strong>We haven&apos;t confirmed your payment yet.</strong> Razorpay returned payment{" "}
-            <code>{unconfirmed.paymentId}</code>, but we couldn&apos;t verify it with our server.
-            Your order is not confirmed yet, and you don&apos;t need to pay again.
-          </p>
-          <button
-            type="button"
-            className="pay-secondary-btn"
-            onClick={handleCheckStatus}
-            disabled={busy}
-          >
-            Check payment status
-          </button>
-        </div>
-      )}
-    </>
-  );
-
   if (step === "methods") {
     return (
       <PaymentMethods
         quote={quote}
         cartItems={cartItems}
-        razorpayAvailable={Boolean(paymentConfig?.available)}
-        razorpayUnavailableReason={paymentConfig?.message}
         retrying={Boolean(unpaidOrderId)}
         phase={phase}
-        onPay={payWithRazorpay}
+        error={error}
+        onPay={payWithMethod}
         onBack={() => {
           setError("");
-          setNotice("");
-          setStep("review");
+                setStep("review");
         }}
-      >
-        {messages}
-      </PaymentMethods>
+      />
     );
   }
 
@@ -668,13 +561,6 @@ const Checkout = () => {
           <h3>Bill details</h3>
           {billDetails}
 
-          {paymentConfig && !paymentConfig.available && (
-            <p className="pay-warning" role="alert">
-              {paymentConfig.message}
-            </p>
-          )}
-          {messages}
-
           <button
             className="co-place-btn"
             type="submit"
@@ -682,10 +568,6 @@ const Checkout = () => {
           >
             Proceed to Payment
           </button>
-          <p className="pay-testnote">
-            <span className="pay-testbadge">TEST MODE</span>
-            Razorpay test payments only — no real money is charged.
-          </p>
         </aside>
       </form>
     </div>

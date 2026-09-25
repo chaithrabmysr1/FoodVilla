@@ -347,7 +347,7 @@
   padding: 13px 20px;
   border: 1px solid transparent;
   border-radius: 8px;
-  background-color: #28a745;
+  background-color: #ff6600;
   color: #fff;
   font-size: 1rem;
   font-weight: 700;
@@ -356,7 +356,7 @@
 }
 
 .co-place-btn:hover:not(:disabled) {
-  background-color: #218838;
+  background-color: #e55a00;
   border-color: transparent;
 }
 

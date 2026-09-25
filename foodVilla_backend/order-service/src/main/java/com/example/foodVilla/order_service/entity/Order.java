@@ -62,9 +62,9 @@ public class Order {
     @Column(name = "final_amount", nullable = false)
     private BigDecimal finalAmount;
 
-    // Razorpay payment id (pay_...), set only once the payment signature has been
-    // verified server-side. Orders from before payments came back may carry ids
-    // from the old payment-service.
+    // Receipt id of the (simulated) payment, e.g. FVPAY7K2M9Q4XT1B, set when the
+    // order is paid. Orders from before may carry ids from the old payment-service
+    // or from Razorpay test mode.
     @Column(name = "payment_id")
     private String paymentId;
 
@@ -76,22 +76,28 @@ public class Order {
     @Column(name = "payment_status", nullable = false)
     private PaymentStatus paymentStatus = PaymentStatus.PENDING;
 
-    // The four columns below were added for Razorpay payments. All are nullable so
-    // ddl-auto:update can add them to a table that already holds orders.
+    // The columns below were added for payments. All are nullable so
+    // ddl-auto:update can add them to a table that already holds orders. A
+    // razorpay_order_id column from the Razorpay test-mode version may still
+    // exist in a database; it is nullable and nothing reads or writes it now.
 
-    // Razorpay order created for this order (order_...). A verify request must
-    // quote exactly this id, which is what ties a payment to the right order.
-    @Column(name = "razorpay_order_id", length = 64)
-    private String razorpayOrderId;
-
-    // Recorded when the payment is applied, e.g. RAZORPAY_TEST.
+    // Who took the payment: DEMO for the built-in simulated payment.
     @Column(name = "payment_provider", length = 32)
     private String paymentProvider;
+
+    // How the customer paid: a PaymentMethod name (UPI, CARD, ...), kept as plain
+    // text so a new method never needs a schema change.
+    @Column(name = "payment_method", length = 32)
+    private String paymentMethod;
+
+    // Masked label for the receipt ("Visa •••• 1111"). Never a full card number.
+    @Column(name = "payment_detail", length = 64)
+    private String paymentDetail;
 
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
 
-    // Why the last attempt failed, as reported by Razorpay Checkout.
+    // Why the last attempt failed (only set by older payment attempts).
     @Column(name = "payment_failure_reason", length = 255)
     private String paymentFailureReason;
 
@@ -167,8 +173,11 @@ public class Order {
     public PaymentStatus getPaymentStatus() { return paymentStatus; }
     public void setPaymentStatus(PaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }
 
-    public String getRazorpayOrderId() { return razorpayOrderId; }
-    public void setRazorpayOrderId(String razorpayOrderId) { this.razorpayOrderId = razorpayOrderId; }
+    public String getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
+
+    public String getPaymentDetail() { return paymentDetail; }
+    public void setPaymentDetail(String paymentDetail) { this.paymentDetail = paymentDetail; }
 
     public String getPaymentProvider() { return paymentProvider; }
     public void setPaymentProvider(String paymentProvider) { this.paymentProvider = paymentProvider; }

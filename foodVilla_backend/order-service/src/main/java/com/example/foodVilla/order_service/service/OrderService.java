@@ -81,8 +81,8 @@ public class OrderService {
         order.addStatusHistory(new OrderStatusHistory(order, OrderStatus.CREATED, "Order placed, awaiting payment"));
 
         // The order is deliberately NOT sent to the restaurant here. It stays
-        // CREATED until PaymentService has verified a Razorpay payment for it,
-        // and only that moves it to RESTAURANT_PENDING.
+        // CREATED until PaymentService has recorded a payment for it, and only
+        // that moves it to RESTAURANT_PENDING.
         Order saved = orderRepository.save(order);
         eventPublisher.publishStatusChanged(saved, null, "Order placed, awaiting payment");
         return new OrderCreationResult(saved, true);
@@ -281,6 +281,8 @@ public class OrderService {
         response.setPaymentId(order.getPaymentId());
         response.setPaymentStatus(order.getPaymentStatus());
         response.setPaymentProvider(order.getPaymentProvider());
+        response.setPaymentMethod(order.getPaymentMethod());
+        response.setPaymentDetail(order.getPaymentDetail());
         response.setPaidAt(order.getPaidAt());
         response.setPaymentFailureReason(order.getPaymentFailureReason());
         response.setPaymentExpired(paymentPolicy.isExpired(order));

@@ -4,9 +4,9 @@ package com.example.foodVilla.order_service.entity;
  * Payment state of an order, independent of {@link OrderStatus}.
  *
  * <pre>
- *   PENDING  -> CONFIRMED   payment signature verified server-side (shown to users as "Paid")
- *   PENDING  -> FAILED      Razorpay Checkout reported a failed attempt
- *   FAILED   -> PENDING     the customer retries; FAILED -> CONFIRMED if that attempt turns out to succeed
+ *   PENDING  -> CONFIRMED   the payment was recorded server-side (shown to users as "Paid")
+ *   PENDING  -> FAILED      only set by older payment attempts; nothing sets it now
+ *   FAILED   -> CONFIRMED   the customer pays the order after a failed attempt
  * </pre>
  *
  * CONFIRMED is the "paid" value. It is not called PAID because

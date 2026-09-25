@@ -3,7 +3,7 @@ import { tokenClaims } from "./jwt";
 // A checkout that has created an order but not finished paying for it.
 //
 // Why this exists: order creation is idempotent per Idempotency-Key, and the
-// customer can refresh or close the tab while Razorpay Checkout is open. If the
+// customer can refresh or close the tab while the payment is being processed. If the
 // page then came back with a brand-new key it would create a SECOND order for
 // the same cart. Persisting the key (and the order id) lets a reload pick the
 // same order up again, and lets the page ask the backend whether it was paid.

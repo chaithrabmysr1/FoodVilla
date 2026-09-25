@@ -1,20 +1,15 @@
 package com.example.foodVilla.order_service.service;
 
 import com.example.foodVilla.order_service.dto.OrderResponse;
-import com.example.foodVilla.order_service.dto.PaymentConfigResponse;
-import com.example.foodVilla.order_service.dto.PaymentFailureRequest;
-import com.example.foodVilla.order_service.dto.PaymentSessionResponse;
-import com.example.foodVilla.order_service.dto.VerifyPaymentRequest;
+import com.example.foodVilla.order_service.dto.PayOrderRequest;
 import com.example.foodVilla.order_service.entity.Order;
 import com.example.foodVilla.order_service.entity.OrderStatus;
 import com.example.foodVilla.order_service.entity.OrderStatusHistory;
+import com.example.foodVilla.order_service.entity.PaymentMethod;
 import com.example.foodVilla.order_service.entity.PaymentStatus;
 import com.example.foodVilla.order_service.exception.PaymentException;
 import com.example.foodVilla.order_service.exception.ResourceNotFoundException;
 import com.example.foodVilla.order_service.messaging.OrderEventPublisher;
-import com.example.foodVilla.order_service.payment.RazorpayGateway;
-import com.example.foodVilla.order_service.payment.RazorpayGateway.RazorpayOrder;
-import com.example.foodVilla.order_service.payment.RazorpayGateway.RazorpayPayment;
 import com.example.foodVilla.order_service.repository.OrderRepository;
 import com.example.foodVilla.order_service.security.AuthenticatedUser;
 import org.slf4j.Logger;
@@ -25,32 +20,29 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.security.SecureRandom;
 
 /**
- * Razorpay TEST MODE payments for an order.
+ * Simulated payments for an order. There is no payment gateway behind this and
+ * no real money moves: the customer fills in dummy details for a method, the
+ * order is marked paid and handed to the restaurant, and a receipt id is issued.
  *
  * <h3>How an order and its payment relate</h3>
  * Payment state (PENDING / CONFIRMED / FAILED) and order state are separate.
- * An order is created {@code CREATED} + payment {@code PENDING}. It is only
- * handed to the restaurant — {@code CREATED -> RESTAURANT_PENDING} — at the
- * moment a payment is verified server-side. Nothing the browser says can do
- * that: the only inputs that mark an order paid are a Razorpay signature this
- * service verifies with the API secret, or Razorpay itself confirming the
- * payment when asked directly ({@link #syncPayment}).
+ * An order is created {@code CREATED} + payment {@code PENDING}. It is handed
+ * to the restaurant — {@code CREATED -> RESTAURANT_PENDING} — only in the same
+ * transaction that records the payment, so an unpaid order never reaches a
+ * restaurant queue.
  *
  * <h3>Rules</h3>
  * <ul>
- *   <li>The amount charged is always the total stored on the order; a client
- *       amount is only compared against it.</li>
- *   <li>Only the order's owner or an ADMIN may touch its payment.</li>
- *   <li>A verify request must quote the Razorpay order created for THIS order.</li>
- *   <li>State changes run under a row lock, so a double submit or a retry
- *       applies the payment once; repeating a successful verify is a no-op.</li>
- *   <li>No Razorpay network call is made while a row lock is held.</li>
+ *   <li>The amount is always the total stored on the order; a client amount is
+ *       only compared against it.</li>
+ *   <li>Only the order's owner or an ADMIN may pay for it.</li>
+ *   <li>State changes run under a row lock, so a double submit pays once; the
+ *       second request is refused with {@code ORDER_ALREADY_PAID}.</li>
+ *   <li>Card numbers, CVVs and expiry dates are not part of the request and are
+ *       never stored. Only the method and a masked label are recorded.</li>
  * </ul>
  */
 @Service
@@ -58,260 +50,80 @@ public class PaymentService {
 
     private static final Logger log = LoggerFactory.getLogger(PaymentService.class);
 
-    static final String CURRENCY = "INR";
-    static final String PROVIDER = "RAZORPAY_TEST";
-    private static final long MIN_AMOUNT_PAISE = 100; // Razorpay's minimum is Rs 1
+    /** Recorded as the order's payment provider: marks the payment as simulated. */
+    static final String PROVIDER = "DEMO";
+
+    private static final String ID_PREFIX = "FVPAY";
+    private static final String ID_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    private static final int ID_LENGTH = 12;
+    private static final int MAX_DETAIL_LENGTH = 64;
 
     private final OrderRepository orderRepository;
     private final OrderService orderService;
-    private final RazorpayGateway gateway;
     private final PaymentPolicy policy;
     private final OrderStatusTransitionValidator transitionValidator;
     private final OrderEventPublisher eventPublisher;
     private final TransactionTemplate tx;
+    private final SecureRandom random = new SecureRandom();
 
     public PaymentService(OrderRepository orderRepository,
                           OrderService orderService,
-                          RazorpayGateway gateway,
                           PaymentPolicy policy,
                           OrderStatusTransitionValidator transitionValidator,
                           OrderEventPublisher eventPublisher,
                           PlatformTransactionManager transactionManager) {
         this.orderRepository = orderRepository;
         this.orderService = orderService;
-        this.gateway = gateway;
         this.policy = policy;
         this.transitionValidator = transitionValidator;
         this.eventPublisher = eventPublisher;
         this.tx = new TransactionTemplate(transactionManager);
     }
 
-    public PaymentConfigResponse getConfig() {
-        if (gateway.isAvailable()) {
-            return new PaymentConfigResponse(true, "TEST", "Razorpay test mode - no real money is charged.");
-        }
-        return new PaymentConfigResponse(false, "TEST", gateway.unavailableReason());
-    }
-
     /**
-     * Starts (or resumes) a payment for an order and returns what Razorpay
-     * Checkout needs. Repeating the call returns the same Razorpay order, so a
-     * double click or a page refresh never creates a second one.
-     *
-     * @param clientAmount what the customer saw (rupees) — never charged, only compared
+     * Pays the order with the chosen method: records the payment, confirms the
+     * order and hands it to the restaurant, then returns the updated order.
      */
-    public PaymentSessionResponse createPayment(Long orderId, AuthenticatedUser principal, BigDecimal clientAmount) {
-        requireAvailable();
-
-        Order order = loadForCaller(orderId, principal);
-        assertPayable(order);
-        assertAmountMatches(order, clientAmount);
-
-        long amountPaise = toPaise(order.getFinalAmount());
-        if (amountPaise < MIN_AMOUNT_PAISE) {
-            throw new PaymentException(HttpStatus.CONFLICT, "ORDER_NOT_PAYABLE",
-                    "This order total is below the minimum online payment amount.");
-        }
-
-        String newRazorpayOrderId = null;
-        if (order.getRazorpayOrderId() != null) {
-            // The customer may already have paid this Razorpay order in an earlier
-            // session (page refreshed or closed before the browser could call
-            // /verify). Ask Razorpay before reopening Checkout on a paid order.
-            if (reconcile(order)) {
-                throw new PaymentException(HttpStatus.CONFLICT, "ORDER_ALREADY_PAID", "This order has already been paid.");
-            }
-        } else {
-            RazorpayOrder created = gateway.createOrder(amountPaise, CURRENCY, "foodvilla-order-" + orderId,
-                    Map.of("orderId", String.valueOf(orderId), "userId", String.valueOf(order.getUserId())));
-            newRazorpayOrderId = created.id();
-        }
-
-        String razorpayOrderId = attachAndReopen(orderId, newRazorpayOrderId);
-        return new PaymentSessionResponse(orderId, razorpayOrderId, amountPaise, CURRENCY, gateway.keyId());
-    }
-
-    /**
-     * Verifies the signature Razorpay Checkout returned and, if valid, marks the
-     * order paid and hands it to the restaurant. Repeating a successful verify
-     * returns the current order unchanged.
-     */
-    public OrderResponse verifyPayment(Long orderId, AuthenticatedUser principal, VerifyPaymentRequest request) {
-        requireAvailable();
+    public OrderResponse payOrder(Long orderId, AuthenticatedUser principal, PayOrderRequest request) {
+        PaymentMethod method = PaymentMethod.parse(request.method())
+                .orElseThrow(() -> new PaymentException(HttpStatus.BAD_REQUEST, "INVALID_PAYMENT_METHOD",
+                        "Choose UPI, Card, Net Banking, Paytm or PayPal."));
+        String detail = cleanDetail(request.detail());
 
         Outcome outcome = tx.execute(status -> {
-            Order order = lockForCaller(orderId, principal);
+            Order order = orderRepository.findByIdForUpdate(orderId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + orderId));
+            orderService.ensureOwnerOrAdmin(order, principal);
+            assertPayable(order);
+            assertAmountMatches(order, request.amount());
 
-            String expectedRazorpayOrderId = order.getRazorpayOrderId();
-            if (expectedRazorpayOrderId == null) {
-                throw new PaymentException(HttpStatus.CONFLICT, "PAYMENT_NOT_STARTED",
-                        "No payment has been started for this order.");
-            }
-            if (!expectedRazorpayOrderId.equals(request.razorpayOrderId())) {
-                log.warn("Rejected payment verification for order {}: the Razorpay order does not belong to it", orderId);
-                throw new PaymentException(HttpStatus.BAD_REQUEST, "PAYMENT_ORDER_MISMATCH",
-                        "This payment does not belong to this order.");
-            }
-            if (!gateway.verifySignature(expectedRazorpayOrderId, request.razorpayPaymentId(), request.razorpaySignature())) {
-                log.warn("Rejected payment verification for order {}: invalid signature", orderId);
-                throw new PaymentException(HttpStatus.BAD_REQUEST, "INVALID_SIGNATURE",
-                        "Payment verification failed. Your order has not been marked as paid.");
-            }
-
-            boolean changed = applyConfirmedPayment(order, request.razorpayPaymentId());
-            Order saved = changed ? orderRepository.save(order) : order;
-            return new Outcome(saved, orderService.toResponse(saved), changed);
+            applyPayment(order, method, detail);
+            Order saved = orderRepository.save(order);
+            return new Outcome(saved, orderService.toResponse(saved));
         });
 
-        if (outcome.changed()) {
-            publishPaid(outcome.order());
-        }
+        publishPaid(outcome.order());
         return outcome.response();
     }
 
     /**
-     * The browser saw Razorpay Checkout report a failed attempt. This can only
-     * record a failure on an order that is still unpaid: it never marks anything
-     * paid, never undoes a paid order, and does not cancel the order — the
-     * customer can retry, and a valid signature later still wins.
+     * Records the payment. Must run inside a transaction on a row-locked order
+     * that has already passed {@link #assertPayable}.
      */
-    public OrderResponse reportFailure(Long orderId, AuthenticatedUser principal, PaymentFailureRequest request) {
-        return tx.execute(status -> {
-            Order order = lockForCaller(orderId, principal);
-
-            if (order.getRazorpayOrderId() == null || !order.getRazorpayOrderId().equals(request.razorpayOrderId())) {
-                throw new PaymentException(HttpStatus.BAD_REQUEST, "PAYMENT_ORDER_MISMATCH",
-                        "This payment does not belong to this order.");
-            }
-            if (order.getOrderStatus() == OrderStatus.CREATED && order.getPaymentStatus() != PaymentStatus.CONFIRMED) {
-                order.setPaymentStatus(PaymentStatus.FAILED);
-                order.setPaymentFailureReason(failureReason(request));
-                orderRepository.save(order);
-            }
-            return orderService.toResponse(order);
-        });
-    }
-
-    /**
-     * Asks Razorpay directly whether this order's payment went through, and if
-     * so applies it. Recovers the case where the customer paid but the browser
-     * never reached /verify (refresh, closed tab, dropped connection). Safe to
-     * call any time; it changes nothing unless Razorpay reports a successful
-     * payment for this order's Razorpay order at the right amount.
-     */
-    public OrderResponse syncPayment(Long orderId, AuthenticatedUser principal) {
-        requireAvailable();
-
-        Order order = loadForCaller(orderId, principal);
-        if (order.getPaymentStatus() != PaymentStatus.CONFIRMED
-                && order.getOrderStatus() != OrderStatus.CANCELLED
-                && order.getRazorpayOrderId() != null) {
-            reconcile(order);
-        }
-        return tx.execute(status -> orderService.toResponse(
-                orderRepository.findById(orderId)
-                        .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + orderId))));
-    }
-
-    // ----------------------------------------------------------------------
-
-    /**
-     * Looks for a successful Razorpay payment on the order's Razorpay order and
-     * applies it. Returns true if the order is paid afterwards.
-     */
-    private boolean reconcile(Order order) {
-        long expectedPaise = toPaise(order.getFinalAmount());
-        String razorpayOrderId = order.getRazorpayOrderId();
-
-        Optional<RazorpayPayment> paid = gateway.fetchPayments(razorpayOrderId).stream()
-                .filter(RazorpayPayment::isSuccessful)
-                .filter(payment -> razorpayOrderId.equals(payment.orderId()))
-                .filter(payment -> payment.amountPaise() == expectedPaise)
-                .findFirst();
-        if (paid.isEmpty()) {
-            return false;
-        }
-
-        Outcome outcome = tx.execute(status -> {
-            Order locked = orderRepository.findByIdForUpdate(order.getId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + order.getId()));
-            if (!razorpayOrderId.equals(locked.getRazorpayOrderId())) {
-                return new Outcome(locked, null, false);
-            }
-            boolean changed = applyConfirmedPayment(locked, paid.get().id());
-            Order saved = changed ? orderRepository.save(locked) : locked;
-            return new Outcome(saved, null, changed);
-        });
-
-        if (outcome.changed()) {
-            publishPaid(outcome.order());
-        }
-        return outcome.order().getPaymentStatus() == PaymentStatus.CONFIRMED;
-    }
-
-    /**
-     * Records a payment Razorpay has confirmed. Must run inside a transaction on
-     * a row-locked order. Returns true when this call changed the order, false
-     * when the same payment had already been applied (idempotent repeat).
-     */
-    private boolean applyConfirmedPayment(Order order, String paymentId) {
-        if (order.getPaymentStatus() == PaymentStatus.CONFIRMED) {
-            if (paymentId.equals(order.getPaymentId())) {
-                return false;
-            }
-            log.warn("Order {} is already paid with {}; refusing to overwrite it with payment {}",
-                    order.getId(), order.getPaymentId(), paymentId);
-            throw new PaymentException(HttpStatus.CONFLICT, "ORDER_ALREADY_PAID",
-                    "This order has already been paid.");
-        }
-        if (order.getOrderStatus() == OrderStatus.CANCELLED) {
-            log.warn("Payment {} arrived for cancelled order {}; not applying it", paymentId, order.getId());
-            throw new PaymentException(HttpStatus.CONFLICT, "ORDER_NOT_PAYABLE",
-                    "This order was cancelled, so the payment could not be applied. Payment reference: " + paymentId);
-        }
-
-        order.setPaymentId(paymentId);
+    private void applyPayment(Order order, PaymentMethod method, String detail) {
+        order.setPaymentId(newPaymentId());
         order.setPaymentStatus(PaymentStatus.CONFIRMED);
         order.setPaymentProvider(PROVIDER);
+        order.setPaymentMethod(method.name());
+        order.setPaymentDetail(detail);
         order.setPaidAt(policy.now());
         order.setPaymentFailureReason(null);
 
         // Payment is what makes the order valid for the restaurant.
-        if (order.getOrderStatus() == OrderStatus.CREATED) {
-            transitionValidator.validateTransition(OrderStatus.CREATED, OrderStatus.RESTAURANT_PENDING);
-            order.setOrderStatus(OrderStatus.RESTAURANT_PENDING);
-            order.addStatusHistory(new OrderStatusHistory(order, OrderStatus.RESTAURANT_PENDING,
-                    "Payment received (Razorpay test mode) - order sent to restaurant"));
-        }
-        return true;
-    }
-
-    /**
-     * Under a row lock: re-checks the order can still be paid, stores the new
-     * Razorpay order id if there is none yet (if another request got there first,
-     * theirs is kept), and turns a FAILED attempt back into PENDING for the retry.
-     */
-    private String attachAndReopen(Long orderId, String newRazorpayOrderId) {
-        return tx.execute(status -> {
-            Order order = orderRepository.findByIdForUpdate(orderId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + orderId));
-            assertPayable(order);
-
-            boolean changed = false;
-            if (order.getRazorpayOrderId() == null) {
-                order.setRazorpayOrderId(newRazorpayOrderId);
-                changed = true;
-            }
-            if (order.getPaymentStatus() == PaymentStatus.FAILED) {
-                order.setPaymentStatus(PaymentStatus.PENDING);
-                order.setPaymentFailureReason(null);
-                changed = true;
-            }
-            if (changed) {
-                orderRepository.save(order);
-            }
-            return order.getRazorpayOrderId();
-        });
+        transitionValidator.validateTransition(OrderStatus.CREATED, OrderStatus.RESTAURANT_PENDING);
+        order.setOrderStatus(OrderStatus.RESTAURANT_PENDING);
+        order.addStatusHistory(new OrderStatusHistory(order, OrderStatus.RESTAURANT_PENDING,
+                "Payment received (" + method.label() + ") - order sent to restaurant"));
     }
 
     private void assertPayable(Order order) {
@@ -340,27 +152,6 @@ public class PaymentService {
         }
     }
 
-    private void requireAvailable() {
-        if (!gateway.isAvailable()) {
-            throw new PaymentException(HttpStatus.SERVICE_UNAVAILABLE, "PAYMENT_NOT_CONFIGURED",
-                    gateway.unavailableReason());
-        }
-    }
-
-    private Order loadForCaller(Long orderId, AuthenticatedUser principal) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + orderId));
-        orderService.ensureOwnerOrAdmin(order, principal);
-        return order;
-    }
-
-    private Order lockForCaller(Long orderId, AuthenticatedUser principal) {
-        Order order = orderRepository.findByIdForUpdate(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + orderId));
-        orderService.ensureOwnerOrAdmin(order, principal);
-        return order;
-    }
-
     // Publishing happens after the payment is committed, and a broker problem
     // must not turn an already-recorded payment into an error for the customer.
     private void publishPaid(Order order) {
@@ -373,31 +164,28 @@ public class PaymentService {
         }
     }
 
-    // Razorpay expects the smallest currency unit. Order amounts have two
-    // decimals, so this is exact.
-    private static long toPaise(BigDecimal amount) {
-        return amount.setScale(2, RoundingMode.HALF_UP).movePointRight(2).longValueExact();
+    // The receipt id, e.g. FVPAY7K2M9Q4XT1B. Unambiguous letters and digits only,
+    // so it can be read out or typed without mixing up 0/O and 1/I.
+    private String newPaymentId() {
+        StringBuilder id = new StringBuilder(ID_PREFIX);
+        for (int i = 0; i < ID_LENGTH; i++) {
+            id.append(ID_ALPHABET.charAt(random.nextInt(ID_ALPHABET.length())));
+        }
+        return id.toString();
     }
 
-    // The description is client-supplied: keep it short and free of control characters.
-    private static String failureReason(PaymentFailureRequest request) {
-        StringBuilder reason = new StringBuilder();
-        if (request.code() != null && !request.code().isBlank()) {
-            reason.append(request.code().trim());
+    // Client-supplied and display-only: keep it short and free of control characters.
+    private static String cleanDetail(String detail) {
+        if (detail == null) {
+            return null;
         }
-        if (request.description() != null && !request.description().isBlank()) {
-            if (reason.length() > 0) {
-                reason.append(": ");
-            }
-            reason.append(request.description().trim());
+        String cleaned = detail.replaceAll("\\p{Cntrl}", " ").trim();
+        if (cleaned.isEmpty()) {
+            return null;
         }
-        String cleaned = reason.toString().replaceAll("\\p{Cntrl}", " ");
-        if (cleaned.isBlank()) {
-            return "Payment failed";
-        }
-        return cleaned.length() > 255 ? cleaned.substring(0, 255) : cleaned;
+        return cleaned.length() > MAX_DETAIL_LENGTH ? cleaned.substring(0, MAX_DETAIL_LENGTH) : cleaned;
     }
 
-    private record Outcome(Order order, OrderResponse response, boolean changed) {
+    private record Outcome(Order order, OrderResponse response) {
     }
 }

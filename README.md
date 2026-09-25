@@ -32,7 +32,7 @@ foodVilla_backend/       user / restaurant / catalogue / order services, api-gat
                          and a standalone eureka_server (Java 17, Maven)
 foodVilla_frontend/      React 18 + Vite web app (customer + admin UI)
 docker-compose.yml       Full local environment — see DOCKER.md
-PAYMENTS.md              Razorpay TEST-MODE payment flow, config and how to test it
+PAYMENTS.md              Simulated payment flow (dummy details, no gateway, no real money)
 REMOVED_SERVICES.md      What was removed (payment, delivery, notification, mobile) and why
 ```
 
@@ -73,10 +73,10 @@ READY_FOR_PICKUP → OUT_FOR_DELIVERY → DELIVERED
 ```
 
 Placing an order creates it as `CREATED` with payment `PENDING`. It moves to
-`RESTAURANT_PENDING` only when the customer's **Razorpay test-mode** payment has been
-verified server-side (payment state and order state are tracked separately — see
-**[PAYMENTS.md](PAYMENTS.md)**). This is a portfolio demo: no real money is ever
-processed. The restaurant steps
+`RESTAURANT_PENDING` only when the customer's payment has been recorded server-side
+(payment state and order state are tracked separately — see
+**[PAYMENTS.md](PAYMENTS.md)**). Payments are simulated: checkout takes dummy UPI /
+card / net banking / Paytm / PayPal details, and no real money is ever processed. The restaurant steps
 (accept/reject/preparing/ready) are ADMIN actions that flow through Kafka;
 `OUT_FOR_DELIVERY` and `DELIVERED` are ADMIN status updates made directly
 against `order-service`.
@@ -108,9 +108,9 @@ this relies on.
 
 ## Known limitations (stated plainly, not hidden)
 
-- **Payments are Razorpay TEST MODE only** — a demo integration; no real money
-  moves, there are no refunds and no webhooks. Without Razorpay test keys the app
-  runs but orders can't be paid. Details and limits: [PAYMENTS.md](PAYMENTS.md).
+- **Payments are simulated** — there is no payment gateway, so no real money moves,
+  nothing verifies that any did, and there are no refunds. No keys are needed.
+  Details and limits: [PAYMENTS.md](PAYMENTS.md).
 - **No restaurant-staff login** — only `USER`/`ADMIN` roles exist. The
   restaurant workflow endpoints and the order status override are
   ADMIN-gated, standing in for a real operator console.

@@ -26,9 +26,7 @@ required variable is missing — this is intentional.
 | `ORDER_SERVICE_URL` | `api-gateway` | `http://localhost:8084` | Bare origin for order-service. |
 | `ORDER_DELIVERY_FEE` | `order-service` | `40` | Flat delivery fee (₹) added to every order. Placeholder until a real fee engine exists. |
 | `ORDER_TAX_RATE` | `order-service` | `0.05` | Flat tax rate applied to the item subtotal. Placeholder until real tax rules exist. |
-| `RAZORPAY_KEY_ID` | `order-service` | *(unset)* | Razorpay **TEST MODE** key id (`rzp_test_…`, public). Live keys are refused. Without it (and the secret) payments are unavailable but the service still starts. See [PAYMENTS.md](../PAYMENTS.md). |
-| `RAZORPAY_KEY_SECRET` | `order-service` | *(unset)* | Razorpay test key **secret**. Backend only — never sent to the browser, never logged; supply it as an environment secret, never in a tracked file. |
-| `PAYMENT_PENDING_ORDER_TTL_MINUTES` | `order-service` | `30` | How long an unpaid order can still start a payment. |
+| `PAYMENT_PENDING_ORDER_TTL_MINUTES` | `order-service` | `30` | How long an unpaid order can still be paid. Payments are simulated and need no keys — see [PAYMENTS.md](../PAYMENTS.md). |
 
 **Restaurant accounts:** there is no restaurant-staff login yet — only
 `USER`/`ADMIN` exist. The restaurant accept/reject/preparing/ready endpoints
@@ -41,8 +39,8 @@ real operator console until dedicated roles are built.
 `notification-service` (and their `PAYMENT_*` / `DELIVERY_*` /
 `NOTIFICATION_*` variables) no longer exist. See
 [REMOVED_SERVICES.md](../REMOVED_SERVICES.md). Payments are back, but inside
-`order-service` (Razorpay test mode) — hence the `RAZORPAY_*` variables above and
-[PAYMENTS.md](../PAYMENTS.md); `PAYMENT_PROVIDER` is not read by anything.
+`order-service` and simulated (see [PAYMENTS.md](../PAYMENTS.md)); `PAYMENT_PROVIDER`
+and `RAZORPAY_*` are not read by anything.
 
 ## Kafka
 

@@ -1,4 +1,4 @@
-/* Razorpay (test mode) payment UI — every rule is scoped to the pay-* prefix so
+/* Payment UI — every rule is scoped to the pay-* / pm-* prefixes so
    the checkout, order-details and order-history styles are left exactly as
    they were. Colours are explicit so the pages read the same in light and dark
    OS themes. */
@@ -24,37 +24,7 @@
 }
 
 /* ---- Messages ---- */
-.pay-notice,
-.pay-warning,
-.pay-unconfirmed {
-  margin: 14px 0 0;
-  padding: 10px 12px;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  line-height: 1.45;
-  text-align: left;
-}
 
-.pay-notice {
-  background-color: #fff8e6;
-  color: #7a5a00;
-}
-
-.pay-warning {
-  background-color: #fff3e9;
-  color: #a34700;
-}
-
-.pay-unconfirmed {
-  background-color: #ffefed;
-  color: #8f1f16;
-}
-
-.pay-unconfirmed p {
-  margin: 0 0 10px;
-}
-
-.pay-unconfirmed code,
 .pay-mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.85em;
@@ -74,77 +44,6 @@
 .pay-error a {
   color: inherit;
   font-weight: 700;
-}
-
-/* ---- Buttons ---- */
-.pay-secondary-btn {
-  padding: 9px 16px;
-  border: 1px solid #28a745;
-  border-radius: 8px;
-  background-color: #fff;
-  color: #1e7e34;
-  font-size: 0.88rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.pay-secondary-btn:hover:not(:disabled) {
-  background-color: #eaf7ee;
-  border-color: #28a745;
-}
-
-.pay-secondary-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.pay-link-btn {
-  align-self: flex-start;
-  padding: 4px 0;
-  border: none;
-  background: none;
-  color: #1e7e34;
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-.pay-link-btn:hover:not(:disabled) {
-  background: none;
-  border: none;
-  color: #14591f;
-}
-
-.pay-link-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* ---- Test-mode notice ---- */
-.pay-testnote {
-  margin: 12px 0 0;
-  font-size: 0.75rem;
-  line-height: 1.5;
-  text-align: center;
-  color: #777;
-}
-
-.pay-testnote code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  color: #444;
-}
-
-.pay-testbadge {
-  display: inline-block;
-  margin-right: 6px;
-  padding: 1px 8px;
-  border-radius: 999px;
-  background-color: #fff3e9;
-  color: #ff6600;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
 }
 
 /* ---- Order details: payment card ---- */
@@ -180,9 +79,7 @@
   margin-top: 6px;
 }
 
-.pay-panel .pay-notice,
-.pay-panel .pay-error,
-.pay-panel .pay-unconfirmed {
+.pay-panel .pay-error {
   margin: 0;
 }
 
@@ -323,6 +220,32 @@
   color: #666;
 }
 
+/* ---- Demo-payment notice ---- */
+.pm-demo-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 22px;
+  padding: 12px 14px;
+  border: 1px solid #f5d38a;
+  border-radius: 10px;
+  background-color: #fff8e6;
+  color: #7a4a00;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.pm-demo-notice svg {
+  flex: none;
+  margin-top: 2px;
+  font-size: 1rem;
+  color: #c77700;
+}
+
+.pm-demo-notice strong {
+  font-weight: 800;
+}
+
 .pm-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
@@ -372,22 +295,6 @@
   color: #1e7e34;
 }
 
-.pm-testpill {
-  padding: 4px 12px;
-  border-radius: 999px;
-  background-color: #fff3e9;
-  color: #ff6600;
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  white-space: nowrap;
-}
-
-.pm-testpill.small {
-  padding: 1px 8px;
-  font-size: 0.66rem;
-}
-
 /* ---- Method cards ---- */
 .pm-methods {
   position: relative;
@@ -409,11 +316,6 @@
   font-size: 1.02rem;
   font-weight: 800;
   color: #222;
-}
-
-.pm-group-head span {
-  font-size: 0.78rem;
-  color: #777;
 }
 
 .pm-options {
@@ -463,17 +365,6 @@
   cursor: not-allowed;
 }
 
-.pm-method.soon,
-.pm-method.soon:hover,
-.pm-method.unavailable,
-.pm-method.unavailable:hover {
-  border-color: #dcdcdc;
-  border-style: dashed;
-  background-color: #fafafa;
-  box-shadow: none;
-  transform: none;
-}
-
 .pm-method-icon {
   flex-shrink: 0;
   width: 46px;
@@ -485,12 +376,6 @@
   align-items: center;
   justify-content: center;
   font-size: 1.35rem;
-}
-
-.pm-method.soon .pm-method-icon,
-.pm-method.unavailable .pm-method-icon {
-  background-color: #eeeeee;
-  color: #9a9a9a;
 }
 
 .pm-method-text {
@@ -511,48 +396,11 @@
   color: #222;
 }
 
-.pm-method.soon .pm-method-name,
-.pm-method.unavailable .pm-method-name {
-  color: #888;
-}
-
 .pm-method-detail {
   font-size: 0.82rem;
   line-height: 1.4;
   color: #777;
   overflow-wrap: anywhere;
-}
-
-.pm-method.soon .pm-method-detail,
-.pm-method.unavailable .pm-method-detail {
-  color: #a0a0a0;
-}
-
-.pm-tag {
-  padding: 1px 8px;
-  border-radius: 999px;
-  background-color: #e6f7ec;
-  color: #1e7e34;
-  font-size: 0.66rem;
-  font-style: normal;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.pm-badge {
-  flex-shrink: 0;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.pm-badge.soon {
-  background-color: #eeeeee;
-  color: #777;
 }
 
 .pm-radio {
@@ -573,6 +421,197 @@
 .pm-method.selected .pm-radio {
   border-color: #28a745;
   background-color: #28a745;
+}
+
+/* ---- Payment details form, opened under the chosen method ---- */
+.pm-option.open .pm-method.selected {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  box-shadow: none;
+}
+
+.pm-form {
+  padding: 16px;
+  border: 1.5px solid #28a745;
+  border-top: 1px dashed #cfeeda;
+  border-radius: 0 0 12px 12px;
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.pm-field label,
+.pm-field-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #555;
+}
+
+.pm-field input,
+.pm-field select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 12px;
+  border: 1.5px solid #d9d9d9;
+  border-radius: 8px;
+  background-color: #fff;
+  color: #222;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+.pm-field input::placeholder {
+  color: #a3a3a3;
+}
+
+.pm-field input:focus,
+.pm-field select:focus {
+  outline: none;
+  border-color: #28a745;
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.18);
+}
+
+.pm-field input:disabled,
+.pm-field select:disabled {
+  background-color: #f6f6f6;
+  cursor: not-allowed;
+}
+
+.pm-field.invalid input,
+.pm-field.invalid select {
+  border-color: #d93025;
+}
+
+.pm-field.invalid input:focus,
+.pm-field.invalid select:focus {
+  box-shadow: 0 0 0 3px rgba(217, 48, 37, 0.15);
+}
+
+.pm-field-hint,
+.pm-field-error {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.pm-field-hint {
+  color: #777;
+}
+
+.pm-field-error {
+  color: #c62828;
+  font-weight: 600;
+}
+
+.pm-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.pm-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.pm-brand {
+  position: absolute;
+  right: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background-color: #eaf7ee;
+  color: #1e7e34;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+
+.pm-prefix {
+  position: absolute;
+  left: 12px;
+  color: #555;
+  font-size: 0.95rem;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.pm-field input.pm-has-prefix {
+  padding-left: 46px;
+}
+
+/* ---- Net banking: popular banks + a list for the rest ---- */
+.pm-banks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.pm-bank {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+  border: 1.5px solid #e3e3e3;
+  border-radius: 10px;
+  background-color: #fff;
+  color: #333;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.pm-bank:hover:not(:disabled) {
+  border-color: #9fd8ae;
+  background-color: #fff;
+}
+
+.pm-bank:focus-visible {
+  outline: 3px solid rgba(40, 167, 69, 0.4);
+  outline-offset: 2px;
+}
+
+.pm-bank.selected,
+.pm-bank.selected:hover:not(:disabled) {
+  border-color: #28a745;
+  background-color: #f4fbf6;
+  box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.16);
+}
+
+.pm-bank:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.pm-bank-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #eaf7ee;
+  color: #1e7e34;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.pm-field.invalid .pm-bank {
+  border-color: #efb4af;
 }
 
 /* ---- Processing overlay ---- */
@@ -598,6 +637,28 @@
   font-weight: 600;
   line-height: 1.5;
   color: #333;
+}
+
+.pm-processing small {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.pm-success-icon {
+  font-size: 3rem;
+  color: #28a745;
+  animation: pm-pop 0.35s ease-out;
+}
+
+@keyframes pm-pop {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .pm-spinner {
@@ -628,43 +689,12 @@
   .pm-spinner {
     animation-duration: 2.4s;
   }
+  .pm-success-icon {
+    animation: none;
+  }
   .pm-method:hover:not(:disabled) {
     transform: none;
   }
-}
-
-/* ---- Test-details help ---- */
-.pm-help {
-  padding: 12px 16px;
-  border: 1px solid #eee;
-  border-radius: 12px;
-  background-color: #fbfbfb;
-  font-size: 0.85rem;
-  color: #555;
-}
-
-.pm-help summary {
-  cursor: pointer;
-  font-weight: 700;
-  color: #444;
-}
-
-.pm-help ul {
-  margin: 10px 0 0;
-  padding-left: 18px;
-  line-height: 1.6;
-}
-
-.pm-help code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  color: #222;
-}
-
-/* ---- Messages shown inside the payment page ---- */
-.pm-main .co-error,
-.pm-main .pay-notice,
-.pm-main .pay-unconfirmed {
-  margin: 0;
 }
 
 /* ---- Order summary ---- */
@@ -784,7 +814,7 @@
   padding: 14px 20px;
   border: 1px solid transparent;
   border-radius: 10px;
-  background-color: #28a745;
+  background-color: #ff6600;
   color: #fff;
   font-size: 1.05rem;
   font-weight: 800;
@@ -794,26 +824,18 @@
 
 .pm-cta:hover:not(:disabled) {
   border-color: transparent;
-  background-color: #218838;
-  box-shadow: 0 6px 16px rgba(40, 167, 69, 0.3);
+  background-color: #e55a00;
+  box-shadow: 0 6px 16px rgba(255, 102, 0, 0.3);
 }
 
 .pm-cta:disabled {
-  background-color: #28a745;
+  background-color: #ff6600;
   opacity: 0.55;
   cursor: not-allowed;
 }
 
 .pm-cta:disabled:hover {
   border-color: transparent;
-}
-
-.pm-secure {
-  margin: 12px 0 0;
-  font-size: 0.75rem;
-  line-height: 1.5;
-  text-align: center;
-  color: #777;
 }
 
 /* ---- Responsive ---- */
@@ -830,6 +852,14 @@
 }
 
 @media (max-width: 520px) {
+  .pm-banks {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pm-form {
+    padding: 14px 12px;
+  }
+
   .pm-title {
     font-size: 1.45rem;
   }
