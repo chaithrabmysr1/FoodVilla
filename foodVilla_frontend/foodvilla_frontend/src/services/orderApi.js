@@ -5,6 +5,10 @@ export const createOrder = (orderRequest, idempotencyKey) =>
     headers: { "Idempotency-Key": idempotencyKey },
   });
 
+// Prices a cart (delivery fee, tax, discount, total) without creating an order.
+// request: { restaurantId, items: [{ foodItemId, quantity }] }
+export const getOrderQuote = (request) => apiClient.post("/api/orders/quote", request);
+
 export const getMyOrders = (page = 0, size = 20) =>
   apiClient.get("/api/orders", { params: { page, size } });
 

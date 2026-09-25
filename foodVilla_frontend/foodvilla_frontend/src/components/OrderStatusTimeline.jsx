@@ -5,14 +5,10 @@ import "../styles/OrderStatusTimeline.css";
 // OrderStatusTransitionValidator (see foodVilla_backend/order-service).
 const STEPS = [
   { status: "CREATED", label: "Order placed" },
-  { status: "PAYMENT_PENDING", label: "Payment pending" },
-  { status: "PAYMENT_CONFIRMED", label: "Payment confirmed" },
   { status: "RESTAURANT_PENDING", label: "Restaurant received order" },
   { status: "RESTAURANT_ACCEPTED", label: "Restaurant accepted" },
   { status: "PREPARING", label: "Preparing your food" },
   { status: "READY_FOR_PICKUP", label: "Food ready" },
-  { status: "DELIVERY_PARTNER_ASSIGNED", label: "Delivery partner assigned" },
-  { status: "PICKED_UP", label: "Order picked up" },
   { status: "OUT_FOR_DELIVERY", label: "Out for delivery" },
   { status: "DELIVERED", label: "Delivered" },
 ];
@@ -27,6 +23,8 @@ function lastNonTerminalStatus(history) {
 }
 
 const OrderStatusTimeline = ({ status, history = [] }) => {
+  // PAYMENT_FAILED can only appear on orders created before payment-service
+  // was removed; the banner is kept so those orders still render correctly.
   if (status === "CANCELLED" || status === "PAYMENT_FAILED") {
     const reachedBefore = lastNonTerminalStatus(history);
     return (
@@ -43,7 +41,14 @@ const OrderStatusTimeline = ({ status, history = [] }) => {
     );
   }
 
-  const currentIndex = STEPS.findIndex((s) => s.status === status);
+  // Orders that predate the payment/delivery-service removal can still sit in a
+  // status that is no longer a step (e.g. PAYMENT_CONFIRMED); fall back to the
+  // last step they actually reached so the timeline isn't blank.
+  let currentIndex = STEPS.findIndex((s) => s.status === status);
+  if (currentIndex < 0) {
+    const reached = lastNonTerminalStatus(history);
+    currentIndex = STEPS.findIndex((s) => s.status === reached);
+  }
 
   return (
     <div className="order-timeline">

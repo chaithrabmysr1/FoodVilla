@@ -31,6 +31,15 @@ public class GlobalExceptionHandler {
         return body(HttpStatus.CONFLICT, ex.getMessage());
     }
 
+    @ExceptionHandler(PaymentException.class)
+    public ResponseEntity<Object> handlePayment(PaymentException ex, WebRequest request) {
+        Map<String, Object> responseBody = new HashMap<>();
+        responseBody.put("timestamp", LocalDateTime.now());
+        responseBody.put("code", ex.getCode());
+        responseBody.put("message", ex.getMessage());
+        return new ResponseEntity<>(responseBody, ex.getStatus());
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Object> handleValidationException(MethodArgumentNotValidException ex, WebRequest request) {
         Map<String, String> errors = new HashMap<>();

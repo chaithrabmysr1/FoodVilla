@@ -1,0 +1,23 @@
+# Profile for the payment integration tests: everything runs in-process — H2
+# instead of MySQL, no Kafka broker, no Razorpay network. Nothing here is a
+# real credential.
+spring:
+  datasource:
+    url: jdbc:h2:mem:payment-it;MODE=MySQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+  kafka:
+    listener:
+      auto-startup: false
+
+jwt:
+  secret: payment-integration-test-signing-key-0123456789abcdef
+
+logging:
+  level:
+    com.example.foodVilla.order_service: WARN

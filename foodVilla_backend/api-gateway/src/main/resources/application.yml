@@ -1,5 +1,5 @@
 server:
-  port: ${PORT:8080}  # single entry point for web/mobile clients
+  port: ${PORT:8080}  # single entry point for web clients
 
 spring:
   application:
@@ -30,18 +30,6 @@ spring:
           uri: ${ORDER_SERVICE_URL:http://localhost:8084}
           predicates:
             - Path=/api/orders/**
-        - id: payment-service
-          uri: ${PAYMENT_SERVICE_URL:http://localhost:8085}
-          predicates:
-            - Path=/api/payments/**
-        - id: delivery-service
-          uri: ${DELIVERY_SERVICE_URL:http://localhost:8086}
-          predicates:
-            - Path=/api/delivery/**
-        - id: notification-service
-          uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8087}
-          predicates:
-            - Path=/api/notifications/**
       globalcors:
         cors-configurations:
           '[/**]':

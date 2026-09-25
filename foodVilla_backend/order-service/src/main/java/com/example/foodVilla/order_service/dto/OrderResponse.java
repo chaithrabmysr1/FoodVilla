@@ -22,6 +22,10 @@ public class OrderResponse {
     private BigDecimal finalAmount;
     private String paymentId;
     private PaymentStatus paymentStatus;
+    private String paymentProvider;
+    private LocalDateTime paidAt;
+    private String paymentFailureReason;
+    private boolean paymentExpired;
     private OrderStatus orderStatus;
     private DeliveryAddressResponse deliveryAddress;
     private List<OrderStatusHistoryResponse> statusHistory;
@@ -69,6 +73,19 @@ public class OrderResponse {
 
     public PaymentStatus getPaymentStatus() { return paymentStatus; }
     public void setPaymentStatus(PaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }
+
+    public String getPaymentProvider() { return paymentProvider; }
+    public void setPaymentProvider(String paymentProvider) { this.paymentProvider = paymentProvider; }
+
+    public LocalDateTime getPaidAt() { return paidAt; }
+    public void setPaidAt(LocalDateTime paidAt) { this.paidAt = paidAt; }
+
+    public String getPaymentFailureReason() { return paymentFailureReason; }
+    public void setPaymentFailureReason(String paymentFailureReason) { this.paymentFailureReason = paymentFailureReason; }
+
+    /** True when the order is still unpaid but too old to start a payment (see PaymentPolicy). */
+    public boolean isPaymentExpired() { return paymentExpired; }
+    public void setPaymentExpired(boolean paymentExpired) { this.paymentExpired = paymentExpired; }
 
     public OrderStatus getOrderStatus() { return orderStatus; }
     public void setOrderStatus(OrderStatus orderStatus) { this.orderStatus = orderStatus; }

@@ -2,31 +2,21 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getOrderById, updateOrderStatus } from "../../services/orderApi";
 import { acceptOrder, markPreparing, markReady, rejectOrder } from "../../services/restaurantOrderApi";
-import {
-  assignDelivery,
-  getAssignmentForOrder,
-  listDeliveryPartners,
-  markDelivered,
-  markOutForDelivery,
-  markPickedUp,
-} from "../../services/deliveryApi";
 import OrderStatusTimeline from "../OrderStatusTimeline";
 import "../../styles/Admin.css";
 import "../../styles/OrderDetails.css";
 
+// Statuses an order can still be moved into. The backend is authoritative and
+// only accepts transitions valid from the current status.
 const ALL_STATUSES = [
-  "CREATED", "PAYMENT_PENDING", "PAYMENT_CONFIRMED", "RESTAURANT_PENDING",
-  "RESTAURANT_ACCEPTED", "PREPARING", "READY_FOR_PICKUP", "DELIVERY_PARTNER_ASSIGNED",
-  "PICKED_UP", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED", "PAYMENT_FAILED",
+  "RESTAURANT_PENDING", "RESTAURANT_ACCEPTED", "PREPARING", "READY_FOR_PICKUP",
+  "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED",
 ];
 
 const AdminOrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [order, setOrder] = useState(null);
-  const [assignment, setAssignment] = useState(null);
-  const [partners, setPartners] = useState([]);
-  const [selectedPartner, setSelectedPartner] = useState("");
   const [forceStatus, setForceStatus] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -35,28 +25,17 @@ const AdminOrderDetail = () => {
     getOrderById(id)
       .then((res) => setOrder(res.data))
       .catch((err) => setMessage(err.response?.data?.message || "Failed to load order"));
-    getAssignmentForOrder(id)
-      .then((res) => setAssignment(res.data))
-      .catch(() => setAssignment(null));
   }, [id]);
 
   useEffect(load, [load]);
-
-  useEffect(() => {
-    if (order?.orderStatus === "READY_FOR_PICKUP") {
-      listDeliveryPartners(true)
-        .then((res) => setPartners(res.data || []))
-        .catch(() => {});
-    }
-  }, [order?.orderStatus]);
 
   const runAction = async (fn) => {
     setBusy(true);
     setMessage("");
     try {
       await fn();
-      // Restaurant/delivery actions publish a Kafka event and apply
-      // asynchronously — give the consumer a moment, then refresh.
+      // Restaurant actions publish a Kafka event and apply asynchronously —
+      // give the consumer a moment, then refresh.
       setTimeout(load, 1200);
     } catch (err) {
       setMessage(err.response?.data?.message || "Action failed");
@@ -89,7 +68,7 @@ const AdminOrderDetail = () => {
         <h3>Customer & Restaurant</h3>
         <p>Customer: {order.customerEmail}</p>
         <p>Restaurant: {order.restaurantName} (ID {order.restaurantId})</p>
-        <p>Payment: {order.paymentStatus} · Total: ₹{order.finalAmount}</p>
+        <p>Total: ₹{order.finalAmount}</p>
       </div>
 
       <div className="order-section">
@@ -130,53 +109,33 @@ const AdminOrderDetail = () => {
 
       <div className="admin-card">
         <h3>Delivery</h3>
-        {assignment && (
-          <p>
-            Assigned to partner #{assignment.deliveryPartnerId} — status: {assignment.status}
-          </p>
-        )}
-
-        {order.orderStatus === "READY_FOR_PICKUP" && !assignment && (
-          <>
-            <select value={selectedPartner} onChange={(e) => setSelectedPartner(e.target.value)}>
-              <option value="">Select a delivery partner...</option>
-              {partners.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.vehicleType || "vehicle n/a"})
-                </option>
-              ))}
-            </select>{" "}
-            <button
-              className="admin-btn"
-              disabled={busy || !selectedPartner}
-              onClick={() => runAction(() => assignDelivery(order.id, order.restaurantId, Number(selectedPartner)))}
-            >
-              Assign delivery partner
-            </button>
-          </>
-        )}
-
-        {assignment?.status === "ASSIGNED" || assignment?.status === "ACCEPTED" ? (
-          <button className="admin-btn" disabled={busy} onClick={() => runAction(() => markPickedUp(assignment.id))}>
-            Mark picked up
-          </button>
-        ) : null}
-        {assignment?.status === "PICKED_UP" && (
-          <button className="admin-btn" disabled={busy} onClick={() => runAction(() => markOutForDelivery(assignment.id))}>
+        {order.orderStatus === "READY_FOR_PICKUP" && (
+          <button
+            className="admin-btn"
+            disabled={busy}
+            onClick={() => runAction(() => updateOrderStatus(order.id, "OUT_FOR_DELIVERY", "Marked out for delivery by admin"))}
+          >
             Mark out for delivery
           </button>
         )}
-        {assignment?.status === "OUT_FOR_DELIVERY" && (
-          <button className="admin-btn" disabled={busy} onClick={() => runAction(() => markDelivered(assignment.id))}>
+        {order.orderStatus === "OUT_FOR_DELIVERY" && (
+          <button
+            className="admin-btn"
+            disabled={busy}
+            onClick={() => runAction(() => updateOrderStatus(order.id, "DELIVERED", "Marked delivered by admin"))}
+          >
             Mark delivered
           </button>
+        )}
+        {!["READY_FOR_PICKUP", "OUT_FOR_DELIVERY"].includes(order.orderStatus) && (
+          <p style={{ color: "#777", fontSize: "0.85rem" }}>No delivery action available at this stage.</p>
         )}
       </div>
 
       <div className="admin-card">
         <h3>Force status (override)</h3>
         <p style={{ color: "#777", fontSize: "0.85rem" }}>
-          Bypasses the normal restaurant/delivery flow — only valid transitions from the
+          Bypasses the normal restaurant flow — only valid transitions from the
           current status are accepted by the backend.
         </p>
         <select value={forceStatus} onChange={(e) => setForceStatus(e.target.value)}>

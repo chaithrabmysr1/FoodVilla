@@ -14,16 +14,13 @@ class OrderStatusTransitionValidatorTest {
 
     @Test
     void fullHappyPathChainSucceeds() {
+        // No payment or delivery-partner steps: those services no longer exist.
         OrderStatus[] chain = {
                 OrderStatus.CREATED,
-                OrderStatus.PAYMENT_PENDING,
-                OrderStatus.PAYMENT_CONFIRMED,
                 OrderStatus.RESTAURANT_PENDING,
                 OrderStatus.RESTAURANT_ACCEPTED,
                 OrderStatus.PREPARING,
                 OrderStatus.READY_FOR_PICKUP,
-                OrderStatus.DELIVERY_PARTNER_ASSIGNED,
-                OrderStatus.PICKED_UP,
                 OrderStatus.OUT_FOR_DELIVERY,
                 OrderStatus.DELIVERED
         };
@@ -63,10 +60,24 @@ class OrderStatusTransitionValidatorTest {
     }
 
     @Test
-    void paymentFailedOnlyReachableFromCreatedOrPaymentPending() {
-        assertDoesNotThrow(() -> validator.validateTransition(OrderStatus.CREATED, OrderStatus.PAYMENT_FAILED));
-        assertDoesNotThrow(() -> validator.validateTransition(OrderStatus.PAYMENT_PENDING, OrderStatus.PAYMENT_FAILED));
-        assertThrows(InvalidOrderStatusTransitionException.class,
-                () -> validator.validateTransition(OrderStatus.PAYMENT_CONFIRMED, OrderStatus.PAYMENT_FAILED));
+    void nothingCanNewlyEnterAPaymentOrDeliveryPartnerState() {
+        for (OrderStatus legacy : new OrderStatus[]{
+                OrderStatus.PAYMENT_PENDING, OrderStatus.PAYMENT_CONFIRMED, OrderStatus.PAYMENT_FAILED,
+                OrderStatus.DELIVERY_PARTNER_ASSIGNED, OrderStatus.PICKED_UP}) {
+            for (OrderStatus from : new OrderStatus[]{OrderStatus.CREATED, OrderStatus.RESTAURANT_PENDING,
+                    OrderStatus.READY_FOR_PICKUP}) {
+                assertThrows(InvalidOrderStatusTransitionException.class,
+                        () -> validator.validateTransition(from, legacy),
+                        from + " -> " + legacy + " should no longer be reachable");
+            }
+        }
+    }
+
+    @Test
+    void ordersAlreadyInLegacyStatesCanStillBeMovedForward() {
+        assertDoesNotThrow(() -> validator.validateTransition(OrderStatus.PAYMENT_CONFIRMED, OrderStatus.RESTAURANT_PENDING));
+        assertDoesNotThrow(() -> validator.validateTransition(OrderStatus.PAYMENT_PENDING, OrderStatus.CANCELLED));
+        assertDoesNotThrow(() -> validator.validateTransition(OrderStatus.DELIVERY_PARTNER_ASSIGNED, OrderStatus.PICKED_UP));
+        assertDoesNotThrow(() -> validator.validateTransition(OrderStatus.PICKED_UP, OrderStatus.OUT_FOR_DELIVERY));
     }
 }

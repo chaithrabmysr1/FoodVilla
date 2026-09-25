@@ -1,0 +1,933 @@
+/* Razorpay (test mode) payment UI — every rule is scoped to the pay-* prefix so
+   the checkout, order-details and order-history styles are left exactly as
+   they were. Colours are explicit so the pages read the same in light and dark
+   OS themes. */
+
+/* ---- Checkout: bill breakdown ---- */
+.pay-bill {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.pay-bill .pay-discount {
+  color: #1e7e34;
+}
+
+.pay-bill .pay-total {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px dashed #ddd;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #222;
+}
+
+/* ---- Messages ---- */
+.pay-notice,
+.pay-warning,
+.pay-unconfirmed {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.pay-notice {
+  background-color: #fff8e6;
+  color: #7a5a00;
+}
+
+.pay-warning {
+  background-color: #fff3e9;
+  color: #a34700;
+}
+
+.pay-unconfirmed {
+  background-color: #ffefed;
+  color: #8f1f16;
+}
+
+.pay-unconfirmed p {
+  margin: 0 0 10px;
+}
+
+.pay-unconfirmed code,
+.pay-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  overflow-wrap: anywhere;
+}
+
+.pay-error {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background-color: #ffefed;
+  color: #c62828;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.pay-error a {
+  color: inherit;
+  font-weight: 700;
+}
+
+/* ---- Buttons ---- */
+.pay-secondary-btn {
+  padding: 9px 16px;
+  border: 1px solid #28a745;
+  border-radius: 8px;
+  background-color: #fff;
+  color: #1e7e34;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pay-secondary-btn:hover:not(:disabled) {
+  background-color: #eaf7ee;
+  border-color: #28a745;
+}
+
+.pay-secondary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pay-link-btn {
+  align-self: flex-start;
+  padding: 4px 0;
+  border: none;
+  background: none;
+  color: #1e7e34;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.pay-link-btn:hover:not(:disabled) {
+  background: none;
+  border: none;
+  color: #14591f;
+}
+
+.pay-link-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ---- Test-mode notice ---- */
+.pay-testnote {
+  margin: 12px 0 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  text-align: center;
+  color: #777;
+}
+
+.pay-testnote code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: #444;
+}
+
+.pay-testbadge {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background-color: #fff3e9;
+  color: #ff6600;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+/* ---- Order details: payment card ---- */
+.pay-rows {
+  margin: 0;
+}
+
+.pay-rows > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 6px 0;
+  font-size: 0.9rem;
+}
+
+.pay-rows dt {
+  color: #777;
+}
+
+.pay-rows dd {
+  margin: 0;
+  color: #222;
+  font-weight: 600;
+  text-align: right;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pay-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.pay-panel .pay-notice,
+.pay-panel .pay-error,
+.pay-panel .pay-unconfirmed {
+  margin: 0;
+}
+
+.pay-muted-text {
+  margin: 10px 0 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: #777;
+}
+
+.oc-status.pay-muted-chip {
+  background-color: #f0f0f0;
+  color: #666;
+}
+
+.pay-hold {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: #555;
+}
+
+/* ---- Confirmation hero: the facts under "Payment successful" ---- */
+.pay-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 24px;
+  max-width: 520px;
+  margin: 18px auto 0;
+  padding: 14px 18px;
+  border: 1px solid #d6efdd;
+  border-radius: 10px;
+  background-color: #fff;
+  text-align: left;
+}
+
+.pay-facts dt {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #777;
+}
+
+.pay-facts dd {
+  margin: 2px 0 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #222;
+  overflow-wrap: anywhere;
+}
+
+/* ---- Order history: payment line under each order ---- */
+.pay-line {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #777;
+  overflow-wrap: anywhere;
+}
+
+.pay-line strong {
+  font-weight: 700;
+}
+
+.pay-line.paid strong {
+  color: #1e7e34;
+}
+
+.pay-line.pending strong {
+  color: #ff6600;
+}
+
+.pay-line.failed strong,
+.pay-line.expired strong {
+  color: #c62828;
+}
+
+@media (max-width: 520px) {
+  .pay-facts {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ======================================================================
+   Payment methods page (pm-*)
+   Every button sets its own colours/borders/hover explicitly: the app's
+   global `button` rule (dark fill, purple hover border) would otherwise leak in.
+   ====================================================================== */
+
+.pm-page {
+  width: 92%;
+  max-width: 1040px;
+  margin: 20px auto 56px;
+  font-family: "Segoe UI", Arial, sans-serif;
+  color: #222;
+  text-align: left;
+}
+
+.pm-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  color: #ff6600;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pm-back:hover:not(:disabled) {
+  border: none;
+  background: none;
+  color: #d95500;
+  text-decoration: underline;
+}
+
+.pm-back:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pm-title {
+  margin: 6px 0 6px;
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #222;
+}
+
+.pm-subtitle {
+  margin: 0 0 22px;
+  max-width: 640px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #666;
+}
+
+.pm-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  gap: 22px;
+  align-items: start;
+}
+
+.pm-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.pm-card {
+  background-color: #fff;
+  border: 1px solid #eee;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+}
+
+/* ---- Amount banner ---- */
+.pm-amount {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: linear-gradient(135deg, #eaf7ee 0%, #ffffff 100%);
+  border-color: #d6efdd;
+}
+
+.pm-amount-label {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #5f7a67;
+}
+
+.pm-amount-value {
+  margin: 2px 0 0;
+  font-size: 2.1rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #1e7e34;
+}
+
+.pm-testpill {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background-color: #fff3e9;
+  color: #ff6600;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.pm-testpill.small {
+  padding: 1px 8px;
+  font-size: 0.66rem;
+}
+
+/* ---- Method cards ---- */
+.pm-methods {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.pm-group-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.pm-group-head h3 {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 800;
+  color: #222;
+}
+
+.pm-group-head span {
+  font-size: 0.78rem;
+  color: #777;
+}
+
+.pm-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pm-method {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1.5px solid #e3e3e3;
+  border-radius: 12px;
+  background-color: #fff;
+  color: #222;
+  font-size: 1rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s, transform 0.15s;
+}
+
+.pm-method:hover:not(:disabled) {
+  border-color: #9fd8ae;
+  background-color: #fff;
+  box-shadow: 0 4px 14px rgba(40, 167, 69, 0.14);
+  transform: translateY(-1px);
+}
+
+.pm-method:focus-visible {
+  outline: 3px solid rgba(40, 167, 69, 0.4);
+  outline-offset: 2px;
+}
+
+.pm-method.selected,
+.pm-method.selected:hover {
+  border-color: #28a745;
+  background-color: #f4fbf6;
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.14);
+  transform: none;
+}
+
+.pm-method:disabled {
+  cursor: not-allowed;
+}
+
+.pm-method.soon,
+.pm-method.soon:hover,
+.pm-method.unavailable,
+.pm-method.unavailable:hover {
+  border-color: #dcdcdc;
+  border-style: dashed;
+  background-color: #fafafa;
+  box-shadow: none;
+  transform: none;
+}
+
+.pm-method-icon {
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background-color: #eaf7ee;
+  color: #1e7e34;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+}
+
+.pm-method.soon .pm-method-icon,
+.pm-method.unavailable .pm-method-icon {
+  background-color: #eeeeee;
+  color: #9a9a9a;
+}
+
+.pm-method-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pm-method-name {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #222;
+}
+
+.pm-method.soon .pm-method-name,
+.pm-method.unavailable .pm-method-name {
+  color: #888;
+}
+
+.pm-method-detail {
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: #777;
+  overflow-wrap: anywhere;
+}
+
+.pm-method.soon .pm-method-detail,
+.pm-method.unavailable .pm-method-detail {
+  color: #a0a0a0;
+}
+
+.pm-tag {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background-color: #e6f7ec;
+  color: #1e7e34;
+  font-size: 0.66rem;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pm-badge {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pm-badge.soon {
+  background-color: #eeeeee;
+  color: #777;
+}
+
+.pm-radio {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border: 2px solid #cfcfcf;
+  border-radius: 50%;
+  background-color: #fff;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.pm-method.selected .pm-radio {
+  border-color: #28a745;
+  background-color: #28a745;
+}
+
+/* ---- Processing overlay ---- */
+.pm-processing {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: 14px;
+  background-color: rgba(255, 255, 255, 0.92);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+}
+
+.pm-processing p {
+  margin: 0;
+  max-width: 320px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: #333;
+}
+
+.pm-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2.5px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: pm-spin 0.8s linear infinite;
+}
+
+.pm-spinner.large {
+  width: 38px;
+  height: 38px;
+  border-width: 4px;
+  border-color: #cfeeda;
+  border-top-color: #28a745;
+}
+
+@keyframes pm-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pm-spinner {
+    animation-duration: 2.4s;
+  }
+  .pm-method:hover:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* ---- Test-details help ---- */
+.pm-help {
+  padding: 12px 16px;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  background-color: #fbfbfb;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.pm-help summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: #444;
+}
+
+.pm-help ul {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  line-height: 1.6;
+}
+
+.pm-help code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: #222;
+}
+
+/* ---- Messages shown inside the payment page ---- */
+.pm-main .co-error,
+.pm-main .pay-notice,
+.pm-main .pay-unconfirmed {
+  margin: 0;
+}
+
+/* ---- Order summary ---- */
+.pm-summary {
+  position: sticky;
+  top: 16px;
+}
+
+.pm-summary h3 {
+  margin: 0 0 14px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #222;
+}
+
+.pm-items {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.pm-items li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pm-items img {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  background-color: #f3f3f3;
+}
+
+.pm-item-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #222;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.pm-item-name small {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: #777;
+}
+
+.pm-item-total {
+  flex-shrink: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #222;
+}
+
+.pm-bill {
+  padding-top: 12px;
+  border-top: 1px dashed #ddd;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pm-bill > div {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.92rem;
+  color: #444;
+}
+
+.pm-bill > .discount {
+  color: #1e7e34;
+}
+
+.pm-bill > .total {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px dashed #ddd;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #222;
+}
+
+.pm-retry {
+  margin: 14px 0 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background-color: #fff8e6;
+  color: #7a5a00;
+  font-size: 0.82rem;
+}
+
+.pm-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 16px;
+  padding: 14px 20px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background-color: #28a745;
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.pm-cta:hover:not(:disabled) {
+  border-color: transparent;
+  background-color: #218838;
+  box-shadow: 0 6px 16px rgba(40, 167, 69, 0.3);
+}
+
+.pm-cta:disabled {
+  background-color: #28a745;
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pm-cta:disabled:hover {
+  border-color: transparent;
+}
+
+.pm-secure {
+  margin: 12px 0 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  text-align: center;
+  color: #777;
+}
+
+/* ---- Responsive ---- */
+/* Two columns down to 760px, so a ~900px window still shows the Pay button
+   beside the methods instead of below the fold. */
+@media (max-width: 760px) {
+  .pm-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .pm-summary {
+    position: static;
+  }
+}
+
+@media (max-width: 520px) {
+  .pm-title {
+    font-size: 1.45rem;
+  }
+
+  .pm-card {
+    padding: 16px;
+  }
+
+  .pm-amount-value {
+    font-size: 1.8rem;
+  }
+
+  .pm-method {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .pm-method-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.15rem;
+  }
+
+  .pm-group-head {
+    flex-direction: column;
+    gap: 2px;
+  }
+}
+
+/* ======================================================================
+   Confirmation hero: "Payment Successful / Order Confirmed"
+   ====================================================================== */
+
+.pay-checks {
+  list-style: none;
+  max-width: 520px;
+  margin: 16px auto 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+}
+
+.pay-checks li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid #d6efdd;
+  border-radius: 12px;
+  background-color: #fff;
+}
+
+.pay-checks svg {
+  flex-shrink: 0;
+  font-size: 1.5rem;
+  color: #28a745;
+}
+
+.pay-checks strong {
+  display: block;
+  font-size: 1rem;
+  color: #1e7e34;
+}
+
+.pay-checks small {
+  display: block;
+  margin-top: 1px;
+  font-size: 0.82rem;
+  color: #666;
+  overflow-wrap: anywhere;
+}
+
+.pay-status-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background-color: #e6f7ec;
+  color: #1e7e34;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.pay-facts .wide {
+  grid-column: 1 / -1;
+}
+
+.pay-hero-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.pay-hero-actions .oc-btn {
+  width: auto;
+  min-width: 190px;
+}

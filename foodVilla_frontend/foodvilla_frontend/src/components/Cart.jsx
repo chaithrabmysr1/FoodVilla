@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { FOOD_PLACEHOLDER, money } from "../utils/format";
 import "../styles/Cart.css";
+import "../styles/CartPage.css";
 
 const Cart = () => {
   const [cartItems, setCartItems] = useState([]);
@@ -78,41 +80,112 @@ const Cart = () => {
     0
   );
 
-  if (cartItems.length === 0)
-    return <p className="empty-cart">Your cart is empty.</p>;
+  if (cartItems.length === 0) {
+    return (
+      <div className="ct-page">
+        <div className="ct-empty">
+          <div className="ct-empty-icon" aria-hidden="true">🛒</div>
+          <h2>Your cart is empty</h2>
+          <p>You haven&apos;t added anything yet. Pick something tasty from a restaurant.</p>
+          <button className="ct-btn primary" onClick={() => navigate("/")}>
+            Browse restaurants
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const restaurantId = cartItems[0]?.restaurantId;
 
   return (
-    <div className="cart-page">
-      <h2>Your Cart</h2>
-      <div className="cart-items">
-        {cartItems.map((item) => (
-          <div className="cart-item-row" key={item.id}>
-            <img
-              src={item.imageUrl || "/default-food.png"}
-              alt={item.itemName}
-            />
-            <div className="cart-item-text">
-              <h4>{item.itemName}</h4>
-              <p>₹ {item.price}</p>
-              <p>{item.isVeg ? "🌱 Veg" : "🍗 Non-Veg"}</p>
-            </div>
-            <div className="cart-quantity-controls">
-              <button onClick={() => handleRemove(item.id)}>-</button>
-              <span>{item.quantity}</span>
-              <button onClick={() => handleAdd(item.id)}>+</button>
-            </div>
-            <button className="delete-btn" onClick={() => handleDelete(item.id)}>
-              🗑️
-            </button>
-          </div>
-        ))}
-      </div>
+    <div className="ct-page">
+      <h2 className="ct-title">
+        Your Cart
+        <span className="ct-count">
+          {itemCount} {itemCount === 1 ? "item" : "items"}
+        </span>
+      </h2>
 
-      <div className="cart-footer">
-        <h3>Total: ₹ {totalPrice}</h3>
-        <button className="checkout-btn" onClick={handleCheckout}>
-          Checkout
-        </button>
+      <div className="ct-layout">
+        <section className="ct-card">
+          <ul className="ct-items">
+            {cartItems.map((item) => (
+              <li className="ct-item" key={item.id}>
+                <img
+                  className="ct-item-img"
+                  src={item.imageUrl || FOOD_PLACEHOLDER}
+                  alt={item.itemName}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = FOOD_PLACEHOLDER;
+                  }}
+                />
+                <div className="ct-item-info">
+                  <p className="ct-item-name">
+                    <span
+                      className={`ct-veg ${item.isVeg ? "veg" : "nonveg"}`}
+                      role="img"
+                      aria-label={item.isVeg ? "Veg" : "Non-veg"}
+                    />
+                    {item.itemName}
+                  </p>
+                  <p className="ct-item-price">{money(item.price)}</p>
+                </div>
+                <div className="ct-stepper">
+                  <button
+                    type="button"
+                    aria-label="Decrease quantity"
+                    onClick={() => handleRemove(item.id)}
+                    disabled={item.quantity <= 1}
+                  >
+                    −
+                  </button>
+                  <span>{item.quantity}</span>
+                  <button
+                    type="button"
+                    aria-label="Increase quantity"
+                    onClick={() => handleAdd(item.id)}
+                  >
+                    +
+                  </button>
+                </div>
+                <p className="ct-item-total">{money(item.price * item.quantity)}</p>
+                <button
+                  type="button"
+                  className="ct-remove"
+                  aria-label={`Remove ${item.itemName}`}
+                  title="Remove"
+                  onClick={() => handleDelete(item.id)}
+                >
+                  🗑️
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <aside className="ct-card ct-summary">
+          <h3>Bill details</h3>
+          <div className="ct-bill-row">
+            <span>Item total</span>
+            <span>{money(totalPrice)}</span>
+          </div>
+          <p className="ct-bill-note">
+            Delivery fee and taxes are added when you place the order.
+          </p>
+          <button className="ct-btn primary" onClick={handleCheckout}>
+            Proceed to Checkout
+          </button>
+          {restaurantId != null && (
+            <button
+              className="ct-btn secondary"
+              onClick={() => navigate(`/restaurant/${restaurantId}`)}
+            >
+              Add more items
+            </button>
+          )}
+        </aside>
       </div>
     </div>
   );

@@ -8,10 +8,11 @@ import java.util.UUID;
 /**
  * Published to kafka.topic.order-events by order-service on every status
  * transition (including creation). This is the single fan-out point other
- * services (notably notification-service, Phase 7) react to — rather than
- * ten granular topics, one event stream per order aggregate, filterable by
- * newStatus. Keyed by orderId on publish so all events for one order land
- * on the same partition and are delivered in order.
+ * services can react to — rather than ten granular topics, one event stream
+ * per order aggregate, filterable by newStatus. No service in this repo
+ * consumes it now that notification-service is gone. Keyed by orderId on
+ * publish so all events for one order land on the same partition and are
+ * delivered in order.
  */
 public class OrderStatusChangedEvent {
 

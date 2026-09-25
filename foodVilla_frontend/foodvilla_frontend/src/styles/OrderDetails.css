@@ -64,11 +64,6 @@
   padding-top: 8px !important;
 }
 
-.order-payment-status {
-  margin-top: 10px;
-  font-size: 0.9rem;
-}
-
 .order-actions {
   display: flex;
   flex-wrap: wrap;

@@ -1,8 +1,8 @@
 # Running FoodVilla with Docker Compose
 
-One command brings up the complete backend: MySQL, Kafka, all 8 Spring Boot
-services, and (optionally) a production-style build of the web frontend
-behind nginx.
+One command brings up the complete backend: MySQL, Kafka, the 5 Spring Boot
+services (user, restaurant, food catalogue, order, API gateway), and
+(optionally) a production-style build of the web frontend behind nginx.
 
 ## Prerequisites
 
@@ -10,7 +10,7 @@ behind nginx.
   running" — a hung/starting daemon will make every command below hang
   instead of failing cleanly, which is worth knowing before you assume
   something in this repo is broken).
-- Nothing else already bound to ports 3306, 5173, 8080–8087, 8090, 29092.
+- Nothing else already bound to ports 3306, 5173, 8080, 8090, 29092.
 
 ## Quickstart
 
@@ -21,7 +21,7 @@ cp .env.example .env
 docker compose up --build
 ```
 
-First run takes a few minutes (Maven builds all 8 services from source, no
+First run takes a few minutes (Maven builds all 5 services from source, no
 layer cache yet). Subsequent runs are much faster.
 
 Once it's up:
@@ -63,7 +63,7 @@ docker compose up --build order-service
 # Follow one service
 docker compose logs -f order-service
 docker compose logs -f api-gateway
-docker compose logs -f payment-service
+docker compose logs -f restaurant-service
 
 # Follow everything
 docker compose logs -f
@@ -79,10 +79,9 @@ Each service logs its own startup (Spring Boot banner + "Started
 XxxApplication"), DB connection (Hibernate dialect resolution — an error
 here means MySQL wasn't ready or credentials are wrong), and Kafka
 connection (`spring.kafka` consumer/producer factory logs). Application
-logs (`com.example.foodVilla.*` at DEBUG) show order creation, payment
-confirmation, restaurant/delivery status changes, and notification
-processing — but never JWTs, passwords, or Razorpay secrets; nothing in
-this codebase logs those.
+logs (`com.example.foodVilla.*` at DEBUG) show order creation and
+restaurant status changes — but never JWTs or passwords; nothing in this
+codebase logs those.
 
 ## Environment variables
 
@@ -97,28 +96,34 @@ different things depending on which service reads them). Inside
 Docker-network-shaped value hardcoded — you don't need to think about that
 gotcha unless you're changing the compose file itself.
 
-## Docker-internal URLs vs. browser/mobile URLs — do not mix these up
+## Payments (Razorpay test mode)
+
+Paying for an order needs Razorpay **test** keys in your untracked `.env`
+(`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`); `docker-compose.yml` passes them to
+`order-service` only, at run time — they are not part of any image and the `web`
+build never sees them. Without them everything except paying works and checkout
+says online payment is unavailable. After adding keys:
+`docker compose up -d --build order-service web`. Full walkthrough, including the
+test card details: [PAYMENTS.md](PAYMENTS.md). This is a demo integration — no real
+money is processed.
+
+## Docker-internal URLs vs. browser URLs — do not mix these up
 
 Inside `docker-compose.yml`, services talk to each other using **Docker
 service names** (`http://user-service:8081`, `http://kafka:9092`, etc.) —
 these hostnames only resolve *inside* the `foodvilla` Docker network.
 
-Your **browser** (running the web app) and your **phone/emulator** (running
-the mobile app) are outside that network entirely. They must always use a
-**host-reachable** address:
+Your **browser** (running the web app) is outside that network entirely. It
+must always use a **host-reachable** address:
 
 - Web dev server (`npm run dev`, outside Docker): `VITE_API_BASE_URL=http://localhost:8080`
 - Web production build (the `web` service in compose): baked in at build
   time via the `VITE_API_BASE_URL` build arg — defaults to
   `http://localhost:8080`, already correct for local Docker use.
-- Mobile: see `foodvilla-mobile/README.md`'s Networking section
-  (`10.0.2.2` for Android emulator, LAN IP for a physical device, etc.) —
-  unchanged by this phase, still applies identically whether the backend
-  runs in Docker or via `mvn spring-boot:run`.
 
-If you ever see `http://api-gateway:8080` in a browser or mobile network
-error, that's the bug this section exists to prevent — a browser/phone can
-never resolve a Docker Compose service name.
+If you ever see `http://api-gateway:8080` in a browser network error, that's
+the bug this section exists to prevent — a browser can never resolve a
+Docker Compose service name.
 
 ## Running the web frontend separately (outside Docker)
 
@@ -136,52 +141,16 @@ Dockerized Gateway) or at a locally-running Gateway (`mvn spring-boot:run`
 in `foodVilla_backend/api-gateway`) — both work identically from the
 browser's perspective.
 
-## Running the mobile app separately
-
-Mobile is never containerized (React Native apps don't run "in Docker" the
-way a server does) — it always runs via Expo, against whichever backend
-you point it at:
-
-```bash
-cd foodvilla-mobile
-npm install    # first time only
-npx expo start
-```
-
-### Connecting to the Dockerized (or locally-run) backend
-
-Set `foodvilla-mobile/.env`'s `EXPO_PUBLIC_API_BASE_URL` based on where the
-Expo app is actually running — full explanation and a table of every case
-in `foodvilla-mobile/README.md`'s Networking section. Summary:
-
-- **Android Emulator**: `http://10.0.2.2:8080` (the emulator's special
-  alias for your host machine's `localhost` — NOT the same as
-  `localhost:8080`, which inside the emulator refers to the emulator
-  itself).
-- **iOS Simulator**: `http://localhost:8080` (shares the host Mac's
-  network namespace, so plain `localhost` works).
-- **Physical device on the same Wi-Fi**: `http://<your-machine-LAN-IP>:8080`
-  — find your LAN IP with `ipconfig getifaddr en0` (macOS, Wi-Fi) and put
-  that in `.env`. This repo intentionally does not hardcode anyone's
-  personal LAN IP.
-
-After editing `.env`, restart `npx expo start` — Expo inlines
-`EXPO_PUBLIC_*` variables at bundle time, so a running dev server won't
-pick up the change until restarted.
-
 ## Kafka topics
 
 Auto-created on first publish/subscribe (development-friendly default) —
 no manual provisioning needed locally:
 
-- `foodvilla.order.events` — order-service publishes on every status
-  transition; notification-service is the main consumer.
-- `foodvilla.payment.events` — payment-service publishes; order-service
-  consumes.
 - `foodvilla.restaurant.events` — restaurant-service publishes;
   order-service consumes.
-- `foodvilla.delivery.events` — delivery-service publishes; order-service
-  consumes.
+- `foodvilla.order.events` — order-service publishes on every status
+  transition. Nothing in this repo consumes it now that notification-service
+  has been removed.
 
 Inspect them live at http://localhost:8090 (kafka-ui) once containers are
 up, or from the host machine with any Kafka CLI tool pointed at

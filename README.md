@@ -1,37 +1,39 @@
 # FoodVilla
 
-An end-to-end food-delivery platform — React web, React Native mobile, and
-8 Spring Boot microservices communicating over Kafka — built as a portfolio
-project demonstrating Java/Spring Boot, microservices, an API Gateway, JWT
-auth, event-driven architecture, Docker, React, React Native, and SQL.
+An end-to-end food-delivery web platform — a React web app and Spring Boot
+microservices (user, restaurant, food catalogue, order) behind an API Gateway,
+with Kafka carrying restaurant events to the order service — built as a
+portfolio project demonstrating Java/Spring Boot, microservices, an API
+Gateway, JWT auth, event-driven architecture, Docker, React, and SQL.
 
 ## Architecture
 
 ```
-React Web  ──┐
-             ├──►  API Gateway (:8080)  ──►  user / restaurant / catalogue /
-React Native ┘                               order / payment / delivery /
-                                               notification services
-                                                      │
-                                                 Kafka (event bus)
-                                                      │
-                                          order-service is the single state
-                                          owner — every other service reacts
-                                          to or publishes an event through it
+React Web ──►  API Gateway (:8080)  ──►  user / restaurant / catalogue /
+                                          order services
+                                                 │
+                                            Kafka (event bus)
+                                                 │
+                                    order-service is the single state
+                                    owner — restaurant actions reach it
+                                    as events
 ```
 
 Each service owns its own MySQL schema (database-per-service). order-service
-is the hub: it's the only service every status transition ultimately flows
-through and the only one every other service needs to consume events from
-(`foodvilla.order.events`) to know "what happened."
+is the hub: it owns every order status transition. Restaurant actions arrive
+as Kafka events (`foodvilla.restaurant.events`), and order-service publishes
+every transition to `foodvilla.order.events` — which nothing in this repo
+consumes at the moment.
 
 ## Project layout
 
 ```
-foodVilla_backend/       8 Spring Boot services + api-gateway (Java 17, Maven)
+foodVilla_backend/       user / restaurant / catalogue / order services, api-gateway,
+                         and a standalone eureka_server (Java 17, Maven)
 foodVilla_frontend/      React 18 + Vite web app (customer + admin UI)
-foodvilla-mobile/        React Native (Expo, TypeScript) customer app
 docker-compose.yml       Full local environment — see DOCKER.md
+PAYMENTS.md              Razorpay TEST-MODE payment flow, config and how to test it
+REMOVED_SERVICES.md      What was removed (payment, delivery, notification, mobile) and why
 ```
 
 ## Quickstart — full stack in Docker
@@ -43,9 +45,8 @@ docker compose up --build
 ```
 
 See **[DOCKER.md](DOCKER.md)** for the complete guide — logs, troubleshooting,
-running web/mobile separately, Android emulator vs. physical device
-networking, and the difference between Docker-internal and browser-facing
-URLs.
+running the web app separately, and the difference between Docker-internal
+and browser-facing URLs.
 
 ## Quickstart — without Docker
 
@@ -62,31 +63,42 @@ cd foodVilla_backend/user-service && ./mvnw spring-boot:run
 
 # Web
 cd foodVilla_frontend/foodvilla_frontend && npm install && npm run dev
-
-# Mobile
-cd foodvilla-mobile && npm install && npx expo start
 ```
 
 ## Order lifecycle
 
 ```
-CREATED → PAYMENT_PENDING → PAYMENT_CONFIRMED → RESTAURANT_PENDING →
-RESTAURANT_ACCEPTED → PREPARING → READY_FOR_PICKUP →
-DELIVERY_PARTNER_ASSIGNED → PICKED_UP → OUT_FOR_DELIVERY → DELIVERED
+CREATED → RESTAURANT_PENDING → RESTAURANT_ACCEPTED → PREPARING →
+READY_FOR_PICKUP → OUT_FOR_DELIVERY → DELIVERED
 ```
 
-`CANCELLED` and `PAYMENT_FAILED` are terminal side-branches. Cancellation is
-only allowed up through `RESTAURANT_ACCEPTED` — enforced server-side by
-`order-service`'s `OrderStatusTransitionValidator`, not just in the UI.
+Placing an order creates it as `CREATED` with payment `PENDING`. It moves to
+`RESTAURANT_PENDING` only when the customer's **Razorpay test-mode** payment has been
+verified server-side (payment state and order state are tracked separately — see
+**[PAYMENTS.md](PAYMENTS.md)**). This is a portfolio demo: no real money is ever
+processed. The restaurant steps
+(accept/reject/preparing/ready) are ADMIN actions that flow through Kafka;
+`OUT_FOR_DELIVERY` and `DELIVERED` are ADMIN status updates made directly
+against `order-service`.
+
+`CANCELLED` is a terminal side-branch. Cancellation is only allowed up
+through `RESTAURANT_ACCEPTED` — enforced server-side by `order-service`'s
+`OrderStatusTransitionValidator`, not just in the UI.
+
+Orders created while the payment and delivery services existed may still carry
+`PAYMENT_*`, `DELIVERY_PARTNER_ASSIGNED` or `PICKED_UP` statuses; those values
+remain in the enum so such orders keep loading. See
+[REMOVED_SERVICES.md](REMOVED_SERVICES.md).
 
 ## Kafka event flow
 
-`order-service` is both the primary consumer and the primary publisher:
-
 ```
-payment-service ──publishes──► foodvilla.payment.events ──┐
-restaurant-service ─publishes─► foodvilla.restaurant.events ─┼─► order-service ──publishes──► foodvilla.order.events ──► notification-service
-delivery-service ──publishes─► foodvilla.delivery.events ──┘                                                            (in-app notifications, live via SSE on web)
+restaurant-service ──publishes──► foodvilla.restaurant.events ──► order-service
+                                                                       │
+                                                                  publishes
+                                                                       ▼
+                                                          foodvilla.order.events
+                                                          (no consumer in this repo)
 ```
 
 Duplicate/redelivered events are handled by the order status state machine
@@ -96,16 +108,13 @@ this relies on.
 
 ## Known limitations (stated plainly, not hidden)
 
-- **Razorpay integration is real code, not tested against a live account** —
-  local development uses `PAYMENT_PROVIDER=mock` by default, which is fully
-  functional and Kafka-event-driven. Verify Razorpay yourself with test-mode
-  keys before relying on it.
-- **No restaurant-staff or delivery-partner login** — only `USER`/`ADMIN`
-  roles exist. Restaurant workflow and delivery-service endpoints are
+- **Payments are Razorpay TEST MODE only** — a demo integration; no real money
+  moves, there are no refunds and no webhooks. Without Razorpay test keys the app
+  runs but orders can't be paid. Details and limits: [PAYMENTS.md](PAYMENTS.md).
+- **No restaurant-staff login** — only `USER`/`ADMIN` roles exist. The
+  restaurant workflow endpoints and the order status override are
   ADMIN-gated, standing in for a real operator console.
-- **Mobile has no real-time push** — React Native has no native
-  `EventSource`; mobile polls for order status and notifications where web
-  uses a live SSE stream. Push notification registration code exists but no
-  push provider is wired up on the backend yet.
-- See `foodVilla_backend/CONFIGURATION.md`, `DOCKER.md`, and
-  `foodvilla-mobile/README.md` for the complete, current list per area.
+- **Delivery is status-only** — an admin marks an order out for delivery and
+  delivered by hand; there is no delivery-partner assignment or tracking.
+- See `foodVilla_backend/CONFIGURATION.md` and `DOCKER.md` for the complete,
+  current list per area.

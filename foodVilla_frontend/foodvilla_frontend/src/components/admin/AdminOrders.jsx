@@ -59,7 +59,6 @@ const AdminOrders = () => {
               <th>Customer</th>
               <th>Restaurant</th>
               <th>Status</th>
-              <th>Payment</th>
               <th>Total</th>
               <th>Placed</th>
               <th></th>
@@ -72,7 +71,6 @@ const AdminOrders = () => {
                 <td>{o.customerEmail}</td>
                 <td>{o.restaurantName}</td>
                 <td>{o.orderStatus.replaceAll("_", " ")}</td>
-                <td>{o.paymentStatus}</td>
                 <td>₹{o.finalAmount}</td>
                 <td>{new Date(o.createdAt).toLocaleString()}</td>
                 <td>

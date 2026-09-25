@@ -36,7 +36,8 @@ public class Order {
     @Column(name = "restaurant_name", nullable = false)
     private String restaurantName;
 
-    // Set once a delivery partner is assigned (Phase 6). Null until then.
+    // Legacy: delivery-service has been removed, so nothing sets this any more.
+    // Kept (nullable) so orders created while it existed still load intact.
     @Column(name = "delivery_partner_id")
     private Long deliveryPartnerId;
 
@@ -61,13 +62,38 @@ public class Order {
     @Column(name = "final_amount", nullable = false)
     private BigDecimal finalAmount;
 
-    // Set once payment-service exists (Phase 4). Null until then.
+    // Razorpay payment id (pay_...), set only once the payment signature has been
+    // verified server-side. Orders from before payments came back may carry ids
+    // from the old payment-service.
     @Column(name = "payment_id")
     private String paymentId;
 
+    // Payment state, kept separate from orderStatus. PENDING -> CONFIRMED (paid)
+    // or FAILED. The column is a native MySQL enum in existing databases and
+    // ddl-auto:update cannot extend it, so the existing value names are reused —
+    // see PaymentStatus.
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_status", nullable = false)
     private PaymentStatus paymentStatus = PaymentStatus.PENDING;
+
+    // The four columns below were added for Razorpay payments. All are nullable so
+    // ddl-auto:update can add them to a table that already holds orders.
+
+    // Razorpay order created for this order (order_...). A verify request must
+    // quote exactly this id, which is what ties a payment to the right order.
+    @Column(name = "razorpay_order_id", length = 64)
+    private String razorpayOrderId;
+
+    // Recorded when the payment is applied, e.g. RAZORPAY_TEST.
+    @Column(name = "payment_provider", length = 32)
+    private String paymentProvider;
+
+    @Column(name = "paid_at")
+    private LocalDateTime paidAt;
+
+    // Why the last attempt failed, as reported by Razorpay Checkout.
+    @Column(name = "payment_failure_reason", length = 255)
+    private String paymentFailureReason;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "order_status", nullable = false)
@@ -140,6 +166,18 @@ public class Order {
 
     public PaymentStatus getPaymentStatus() { return paymentStatus; }
     public void setPaymentStatus(PaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }
+
+    public String getRazorpayOrderId() { return razorpayOrderId; }
+    public void setRazorpayOrderId(String razorpayOrderId) { this.razorpayOrderId = razorpayOrderId; }
+
+    public String getPaymentProvider() { return paymentProvider; }
+    public void setPaymentProvider(String paymentProvider) { this.paymentProvider = paymentProvider; }
+
+    public LocalDateTime getPaidAt() { return paidAt; }
+    public void setPaidAt(LocalDateTime paidAt) { this.paidAt = paidAt; }
+
+    public String getPaymentFailureReason() { return paymentFailureReason; }
+    public void setPaymentFailureReason(String paymentFailureReason) { this.paymentFailureReason = paymentFailureReason; }
 
     public OrderStatus getOrderStatus() { return orderStatus; }
     public void setOrderStatus(OrderStatus orderStatus) { this.orderStatus = orderStatus; }

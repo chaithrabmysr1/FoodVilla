@@ -3,10 +3,14 @@
 This documents the specific deployment target for the scoped-down recruiter
 demo: **frontend on Vercel, 5 backend services on Render, MySQL on Aiven**.
 
-Not part of this deployment: `payment-service`, `delivery-service`,
-`notification-service`, Kafka/Kafka UI, `eureka_server`. Their source code
-stays in the repository — see `foodVilla_backend/CONFIGURATION.md` for their
-local-dev configuration, which is unaffected by this document.
+Not part of this deployment: Kafka/Kafka UI, `eureka_server`. Their source
+code (where the repo has any) stays in the repository — see
+`foodVilla_backend/CONFIGURATION.md` for local-dev configuration, which is
+unaffected by this document. The former `payment-service`, `delivery-service`
+and `notification-service` no longer exist; see `REMOVED_SERVICES.md`. Payments
+are back as a **Razorpay test-mode** integration inside `order-service` — no new
+service to deploy; see [PAYMENTS.md](PAYMENTS.md). It is a demo: no real money is
+processed.
 
 ## Architecture
 
@@ -103,6 +107,9 @@ manual port configuration is needed anywhere in this table.
 | `CORS_ALLOWED_ORIGIN` | optional/inert — not consumed by this service's code anymore (see note under user-service). Safe to leave unset. |
 | `CATALOGUE_SERVICE_URL` | `https://<foodcatalogue-service-render-url>/api/catalogue/` — **full path, trailing slash** |
 | `ORDER_DELIVERY_FEE` / `ORDER_TAX_RATE` | optional, defaults are fine (`40` / `0.05`) |
+| `RAZORPAY_KEY_ID` | Razorpay **test** key id, `rzp_test_…` (public). Needed to take payments; without it the service still starts and checkout reports payment unavailable. Live keys are refused. |
+| `RAZORPAY_KEY_SECRET` | Razorpay test key **secret** — set it as a Render secret env var. Backend only: never on Vercel, never in a `VITE_*` variable, never committed. |
+| `PAYMENT_PENDING_ORDER_TTL_MINUTES` | optional (default `30`) — how long an unpaid order can still start a payment |
 | `KAFKA_BOOTSTRAP_SERVERS` | leave unset — confirmed non-blocking at startup |
 
 **api-gateway**
@@ -113,7 +120,7 @@ manual port configuration is needed anywhere in this table.
 | `CATALOGUE_SERVICE_URL` | `https://<foodcatalogue-service-render-url>` — **bare origin** |
 | `ORDER_SERVICE_URL` | `https://<order-service-render-url>` — **bare origin** |
 | `CORS_ALLOWED_ORIGIN` | your Vercel URL |
-| `PAYMENT_SERVICE_URL` / `DELIVERY_SERVICE_URL` / `NOTIFICATION_SERVICE_URL` | leave unset — routes stay defined but unused; nothing in the deployed frontend calls them |
+| `PAYMENT_SERVICE_URL` / `DELIVERY_SERVICE_URL` / `NOTIFICATION_SERVICE_URL` | no longer read — those routes were removed from the gateway. Delete them from Render if you had set them. |
 
 ### Same variable name, different required shape — read this twice before filling in values
 
@@ -149,6 +156,11 @@ by a slow first load.
   (created alongside this doc) rewrites every path to `/index.html` so
   `BrowserRouter` routes like `/restaurant/5` or `/orders/12` survive a
   direct load or refresh instead of 404ing.
+- **Razorpay: nothing to set on Vercel.** The frontend gets the public key id from
+  the backend when a payment starts (`POST /api/orders/{id}/payment/create`), so no
+  Razorpay variable is needed here — and the secret must never be added to Vercel or
+  to any `VITE_*` variable. Razorpay Checkout's script is loaded from
+  `https://checkout.razorpay.com` only when a customer pays.
 - Build settings: Vercel's zero-config Vite detection applies as-is
   (`vite build`, output `dist/`) — nothing else to configure.
 - Once you have the real Vercel URL, go back and set `CORS_ALLOWED_ORIGIN`
@@ -156,12 +168,41 @@ by a slow first load.
   reads it. The 4 backend services no longer consume this variable (see the
   per-service tables above), so setting it there has no effect.
 
+## Payments on this deployment (Razorpay test mode)
+
+Full detail — flow, API, security model, limitations — is in
+[PAYMENTS.md](PAYMENTS.md). Deployment-specific points:
+
+- **Portfolio demo, not a payment system.** Razorpay runs in **TEST MODE**; the
+  backend refuses any key that isn't `rzp_test_…`, so no real money can move. Say so
+  when you demo it.
+- **Render:** add `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` to **order-service**
+  only. Redeploy it. The gateway already routes `/api/orders/**`.
+- **Existing database:** on first start with this build, `ddl-auto: update` adds four
+  **nullable** columns to `orders` (`razorpay_order_id`, `payment_provider`, `paid_at`,
+  `payment_failure_reason`). Nothing is dropped or rewritten and existing orders load
+  unchanged. `payment_status` is not altered (it stays a MySQL enum, which is why the
+  paid value is `CONFIRMED`; see PAYMENTS.md).
+- **Behaviour change to expect:** an order is no longer sent to the restaurant when it
+  is placed. It stays `CREATED` until its payment is verified. Orders already in your
+  database that are `CREATED` and unpaid will read "Payment expired" once older than
+  30 minutes; an admin can cancel them or move them on ("Force status").
+- **Without keys** the site still deploys and works — browse, cart, login, order
+  history — but checkout shows that online payment is unavailable and no new order can
+  be paid.
+- **Not yet verified against real Razorpay test keys** in the development environment
+  (none were available). Run the test steps in PAYMENTS.md once with your own keys
+  before showing it to anyone.
+
 ## What's intentionally excluded from this deployment
 
-`payment-service`, `delivery-service`, `notification-service`, and Kafka are
-not deployed. The recruiter-facing flow (signup/login → browse restaurants →
-view food items → add to cart → place order → view order history) does not
-call any of them — confirmed by inspecting the frontend's service imports.
-`Checkout.jsx` creates the order directly with no payment step, and displays
-a demo notice rather than claiming a payment was processed. Their source
-code remains in the repository, unmodified, for future phases.
+`eureka_server` and Kafka are not required for the recruiter-facing flow
+(signup/login → browse restaurants → view food items → add to cart → checkout → pay with
+Razorpay test credentials → view order history): when a payment is verified,
+`order-service` moves the order to `RESTAURANT_PENDING` synchronously, so no consumer has
+to act for it to reach the restaurant queue. `payment-service`, `delivery-service` and
+`notification-service` have been removed from the repository; see `REMOVED_SERVICES.md`.
+
+Orders created before this change and left at `CREATED` on the deployed database are
+unpaid; an admin can cancel them or move them on from the admin order page
+("Force status").

@@ -1,7 +1,8 @@
 name: foodvilla
 
-# Full local environment: MySQL, Kafka, all 8 backend services, and
-# (optionally) the web frontend behind nginx. `docker compose up --build`
+# Full local environment: MySQL, Kafka, the 5 backend services (user,
+# restaurant, food catalogue, order, API gateway) and (optionally) the web
+# frontend behind nginx. `docker compose up --build`
 # from the repo root brings up everything.
 #
 # Every inter-service URL below uses Docker Compose service names
@@ -173,6 +174,13 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       ORDER_DELIVERY_FEE: ${ORDER_DELIVERY_FEE:-40}
       ORDER_TAX_RATE: ${ORDER_TAX_RATE:-0.05}
+      # Razorpay TEST MODE keys (see PAYMENTS.md). Read from the untracked .env at
+      # run time and passed only to this container — never baked into an image,
+      # never given to the web build. Empty is fine: the service still starts and
+      # payment endpoints answer 503 PAYMENT_NOT_CONFIGURED.
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
+      PAYMENT_PENDING_ORDER_TTL_MINUTES: ${PAYMENT_PENDING_ORDER_TTL_MINUTES:-30}
     depends_on:
       mysql:
         condition: service_healthy
@@ -182,89 +190,6 @@ services:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8084/actuator/health" ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 40s
-
-  payment-service:
-    build: ./foodVilla_backend/payment-service
-    container_name: foodvilla-payment-service
-    restart: unless-stopped
-    environment:
-      PORT: 8085
-      DB_URL: jdbc:mysql://mysql:3306/foodvilla_paymentService
-      DB_USERNAME: root
-      DB_PASSWORD: ${DB_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET}
-      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:5173}
-      # Full path (trailing slash) — payment-service's own REST client
-      # shape, NOT the gateway's bare-origin shape. See CONFIGURATION.md.
-      ORDER_SERVICE_URL: http://order-service:8084/api/orders/
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      # Mock mode is the safe local default — never bake real Razorpay
-      # secrets into this file. Set PAYMENT_PROVIDER=razorpay plus the two
-      # keys in your own untracked .env if you want to test that path.
-      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-mock}
-      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
-      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
-    depends_on:
-      mysql:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-      order-service:
-        condition: service_healthy
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8085/actuator/health" ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 40s
-
-  delivery-service:
-    build: ./foodVilla_backend/delivery-service
-    container_name: foodvilla-delivery-service
-    restart: unless-stopped
-    environment:
-      PORT: 8086
-      DB_URL: jdbc:mysql://mysql:3306/foodvilla_deliveryService
-      DB_USERNAME: root
-      DB_PASSWORD: ${DB_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET}
-      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:5173}
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-    depends_on:
-      mysql:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8086/actuator/health" ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 40s
-
-  notification-service:
-    build: ./foodVilla_backend/notification-service
-    container_name: foodvilla-notification-service
-    restart: unless-stopped
-    environment:
-      PORT: 8087
-      DB_URL: jdbc:mysql://mysql:3306/foodvilla_notificationService
-      DB_USERNAME: root
-      DB_PASSWORD: ${DB_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET}
-      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:5173}
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-    depends_on:
-      mysql:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8087/actuator/health" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -285,9 +210,6 @@ services:
       RESTAURANT_SERVICE_URL: http://restaurant-service:8082
       CATALOGUE_SERVICE_URL: http://foodcatalogue-service:8083
       ORDER_SERVICE_URL: http://order-service:8084
-      PAYMENT_SERVICE_URL: http://payment-service:8085
-      DELIVERY_SERVICE_URL: http://delivery-service:8086
-      NOTIFICATION_SERVICE_URL: http://notification-service:8087
     depends_on:
       user-service:
         condition: service_started
@@ -296,12 +218,6 @@ services:
       foodcatalogue-service:
         condition: service_started
       order-service:
-        condition: service_started
-      payment-service:
-        condition: service_started
-      delivery-service:
-        condition: service_started
-      notification-service:
         condition: service_started
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]

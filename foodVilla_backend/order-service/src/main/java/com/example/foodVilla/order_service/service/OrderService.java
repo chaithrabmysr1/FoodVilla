@@ -18,6 +18,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,9 @@ public class OrderService {
 
     @Autowired
     private OrderEventPublisher eventPublisher;
+
+    @Autowired
+    private PaymentPolicy paymentPolicy;
 
     @Value("${catalogue.service.url}")
     private String catalogueServiceUrl;
@@ -56,11 +60,7 @@ public class OrderService {
         }
 
         CatalogueResponseDTO catalogue = fetchCatalogue(request.getRestaurantId());
-
-        Map<Long, CatalogueFoodItemDTO> itemsById = new HashMap<>();
-        for (CatalogueFoodItemDTO item : catalogue.getFoodItems()) {
-            itemsById.put(item.getId(), item);
-        }
+        Pricing pricing = price(request.getRestaurantId(), request.getItems(), catalogue);
 
         Order order = new Order();
         order.setUserId(principal.userId());
@@ -68,11 +68,66 @@ public class OrderService {
         order.setRestaurantId(request.getRestaurantId());
         order.setRestaurantName(catalogue.getRestaurant().getName());
         order.setIdempotencyKey(idempotencyKey);
+        pricing.items().forEach(order::addItem);
 
+        order.setSubtotalAmount(pricing.subtotal());
+        order.setDeliveryFee(pricing.deliveryFee());
+        order.setTaxAmount(pricing.tax());
+        order.setDiscountAmount(pricing.discount());
+        order.setFinalAmount(pricing.finalAmount());
+        order.setDeliveryAddress(toEntityAddress(request.getDeliveryAddress()));
+        order.setOrderStatus(OrderStatus.CREATED);
+        order.setPaymentStatus(PaymentStatus.PENDING);
+        order.addStatusHistory(new OrderStatusHistory(order, OrderStatus.CREATED, "Order placed, awaiting payment"));
+
+        // The order is deliberately NOT sent to the restaurant here. It stays
+        // CREATED until PaymentService has verified a Razorpay payment for it,
+        // and only that moves it to RESTAURANT_PENDING.
+        Order saved = orderRepository.save(order);
+        eventPublisher.publishStatusChanged(saved, null, "Order placed, awaiting payment");
+        return new OrderCreationResult(saved, true);
+    }
+
+    /**
+     * Prices a cart with exactly the rules createOrder uses, without saving
+     * anything. Checkout calls this to show the real bill before the customer
+     * commits to an order.
+     */
+    public OrderQuoteResponse quote(OrderQuoteRequest request) {
+        CatalogueResponseDTO catalogue = fetchCatalogue(request.restaurantId());
+        Pricing pricing = price(request.restaurantId(), request.items(), catalogue);
+
+        List<OrderItemResponse> lines = pricing.items().stream().map(item -> {
+            OrderItemResponse line = new OrderItemResponse();
+            line.setFoodItemId(item.getFoodItemId());
+            line.setItemName(item.getItemName());
+            line.setPrice(item.getPrice());
+            line.setQuantity(item.getQuantity());
+            line.setSubtotal(item.getSubtotal());
+            return line;
+        }).toList();
+
+        return new OrderQuoteResponse(lines, pricing.subtotal(), pricing.deliveryFee(), pricing.tax(),
+                pricing.discount(), pricing.finalAmount(), "INR");
+    }
+
+    private record Pricing(List<OrderItem> items, BigDecimal subtotal, BigDecimal deliveryFee,
+                           BigDecimal tax, BigDecimal discount, BigDecimal finalAmount) {
+    }
+
+    // Prices come from the catalogue, never from the client. There is no
+    // promotion engine yet, so the discount is always zero.
+    private Pricing price(Long restaurantId, List<OrderItemRequest> requestedItems, CatalogueResponseDTO catalogue) {
+        Map<Long, CatalogueFoodItemDTO> itemsById = new HashMap<>();
+        for (CatalogueFoodItemDTO item : catalogue.getFoodItems()) {
+            itemsById.put(item.getId(), item);
+        }
+
+        List<OrderItem> lines = new ArrayList<>();
         BigDecimal subtotal = BigDecimal.ZERO;
-        for (OrderItemRequest itemRequest : request.getItems()) {
+        for (OrderItemRequest itemRequest : requestedItems) {
             CatalogueFoodItemDTO catalogueItem = itemsById.get(itemRequest.getFoodItemId());
-            if (catalogueItem == null || !request.getRestaurantId().equals(catalogueItem.getRestaurantId())) {
+            if (catalogueItem == null || !restaurantId.equals(catalogueItem.getRestaurantId())) {
                 throw new ResourceNotFoundException(
                         "Food item not found for this restaurant: id=" + itemRequest.getFoodItemId());
             }
@@ -86,28 +141,16 @@ public class OrderService {
             orderItem.setPrice(price);
             orderItem.setQuantity(itemRequest.getQuantity());
             orderItem.setSubtotal(itemSubtotal);
-            order.addItem(orderItem);
+            lines.add(orderItem);
 
             subtotal = subtotal.add(itemSubtotal);
         }
 
         BigDecimal deliveryFee = deliveryFeeConfig.setScale(2, RoundingMode.HALF_UP);
         BigDecimal tax = subtotal.multiply(taxRateConfig).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal finalAmount = subtotal.add(deliveryFee).add(tax);
-
-        order.setSubtotalAmount(subtotal);
-        order.setDeliveryFee(deliveryFee);
-        order.setTaxAmount(tax);
-        order.setDiscountAmount(BigDecimal.ZERO);
-        order.setFinalAmount(finalAmount);
-        order.setDeliveryAddress(toEntityAddress(request.getDeliveryAddress()));
-        order.setOrderStatus(OrderStatus.CREATED);
-        order.setPaymentStatus(PaymentStatus.PENDING);
-        order.addStatusHistory(new OrderStatusHistory(order, OrderStatus.CREATED, "Order placed"));
-
-        Order saved = orderRepository.save(order);
-        eventPublisher.publishStatusChanged(saved, null, "Order placed");
-        return new OrderCreationResult(saved, true);
+        BigDecimal discount = BigDecimal.ZERO;
+        BigDecimal finalAmount = subtotal.add(deliveryFee).add(tax).subtract(discount);
+        return new Pricing(lines, subtotal, deliveryFee, tax, discount, finalAmount);
     }
 
     public OrderResponse getOrder(Long orderId, AuthenticatedUser principal) {
@@ -166,16 +209,6 @@ public class OrderService {
         return toResponse(saved);
     }
 
-    // Just a field update, not a status transition — kept separate from
-    // updateStatus() so a DELIVERY_PARTNER_ASSIGNED event can set both in
-    // one consumer method without conflating the two concerns.
-    @Transactional
-    public void assignDeliveryPartner(Long orderId, Long deliveryPartnerId) {
-        Order order = findOrderOrThrow(orderId);
-        order.setDeliveryPartnerId(deliveryPartnerId);
-        orderRepository.save(order);
-    }
-
     private CatalogueResponseDTO fetchCatalogue(Long restaurantId) {
         try {
             CatalogueResponseDTO response = restTemplate.getForObject(catalogueServiceUrl + restaurantId, CatalogueResponseDTO.class);
@@ -193,7 +226,7 @@ public class OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + orderId));
     }
 
-    private void ensureOwnerOrAdmin(Order order, AuthenticatedUser principal) {
+    void ensureOwnerOrAdmin(Order order, AuthenticatedUser principal) {
         boolean isOwner = order.getUserId().equals(principal.userId());
         boolean isAdmin = ADMIN_ROLE.equals(principal.role());
         if (!isOwner && !isAdmin) {
@@ -247,6 +280,10 @@ public class OrderService {
         response.setFinalAmount(order.getFinalAmount());
         response.setPaymentId(order.getPaymentId());
         response.setPaymentStatus(order.getPaymentStatus());
+        response.setPaymentProvider(order.getPaymentProvider());
+        response.setPaidAt(order.getPaidAt());
+        response.setPaymentFailureReason(order.getPaymentFailureReason());
+        response.setPaymentExpired(paymentPolicy.isExpired(order));
         response.setOrderStatus(order.getOrderStatus());
         response.setDeliveryAddress(toResponseAddress(order.getDeliveryAddress()));
         response.setCreatedAt(order.getCreatedAt());

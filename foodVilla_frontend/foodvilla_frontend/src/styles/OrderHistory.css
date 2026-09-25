@@ -1,0 +1,301 @@
+/* My Orders page — every rule is scoped to the oh-* prefix so the shared order
+   styles in OrderDetails.css are left exactly as they were. Colours are
+   explicit so the page reads the same in light and dark OS themes. */
+
+.oh-page {
+  width: 92%;
+  max-width: 980px;
+  margin: 24px auto 48px;
+  min-height: 60vh;
+  font-family: "Segoe UI", Arial, sans-serif;
+  color: #222;
+  text-align: left;
+}
+
+.oh-title {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 0 0 20px;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #222;
+}
+
+.oh-count {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #777;
+}
+
+.oh-loading {
+  margin: 0;
+  color: #777;
+}
+
+/* ---- Order cards ---- */
+.oh-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.oh-card,
+.oh-card:hover {
+  color: #222;
+  text-decoration: none;
+}
+
+.oh-card {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px 14px 14px;
+  background-color: #fff;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.oh-card:hover {
+  border-color: #e0e0e0;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+}
+
+.oh-card:focus-visible {
+  outline: 2px solid #28a745;
+  outline-offset: 2px;
+}
+
+.oh-thumb {
+  position: relative;
+  width: 88px;
+  height: 88px;
+}
+
+.oh-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  object-fit: cover;
+  background-color: #f3f3f3;
+}
+
+/* "+N" when an order has more items than the one pictured */
+.oh-thumb-more {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background-color: rgba(0, 0, 0, 0.68);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.oh-main {
+  min-width: 0;
+}
+
+.oh-restaurant {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #222;
+}
+
+.oh-items {
+  margin: 0 0 6px;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  color: #555;
+  overflow-wrap: anywhere;
+  /* long dish names: keep the card compact */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.oh-meta {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.oh-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  text-align: right;
+}
+
+.oh-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background-color: #fff3e9;
+  color: #ff6600;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.oh-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+.oh-status.done {
+  background-color: #e6f7ec;
+  color: #1e7e34;
+}
+
+.oh-status.failed {
+  background-color: #ffefed;
+  color: #c62828;
+}
+
+.oh-total {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #222;
+}
+
+.oh-view {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1e7e34;
+}
+
+/* ---- Pagination ---- */
+.oh-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  margin-top: 22px;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.oh-pagination button {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #fff;
+  color: #1e7e34;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.oh-pagination button:hover:not(:disabled) {
+  border-color: #28a745;
+  background-color: #eaf7ee;
+}
+
+.oh-pagination button:disabled {
+  color: #bbb;
+  cursor: not-allowed;
+}
+
+/* ---- Empty state ---- */
+.oh-empty {
+  max-width: 420px;
+  margin: 60px auto 0;
+  padding: 36px 24px;
+  text-align: center;
+  background-color: #fff;
+  border: 1px solid #eee;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.oh-empty-icon {
+  width: 84px;
+  height: 84px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background-color: #fff3e9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.4rem;
+}
+
+.oh-empty h2 {
+  margin: 0 0 8px;
+  font-size: 1.3rem;
+  color: #222;
+}
+
+.oh-empty p {
+  margin: 0 0 20px;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: #777;
+}
+
+.oh-btn {
+  display: inline-block;
+  padding: 12px 22px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background-color: #28a745;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.oh-btn:hover {
+  background-color: #218838;
+  border-color: transparent;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 560px) {
+  .oh-card {
+    grid-template-columns: 64px minmax(0, 1fr);
+    grid-template-areas:
+      "thumb main"
+      "side side";
+    gap: 12px 14px;
+    padding: 12px;
+  }
+
+  .oh-thumb {
+    grid-area: thumb;
+    width: 64px;
+    height: 64px;
+  }
+
+  .oh-main {
+    grid-area: main;
+  }
+
+  .oh-side {
+    grid-area: side;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 10px;
+    border-top: 1px dashed #e6e6e6;
+  }
+}

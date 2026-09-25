@@ -89,7 +89,7 @@
 			<artifactId>spring-boot-starter-validation</artifactId>
 		</dependency>
 
-		<!-- Kafka: publishes order.events, consumes payment/restaurant/delivery events -->
+		<!-- Kafka: publishes order.events, consumes restaurant.events -->
 		<dependency>
 			<groupId>org.springframework.kafka</groupId>
 			<artifactId>spring-kafka</artifactId>
@@ -99,6 +99,22 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+
+		<!-- Razorpay Java SDK — creates the Razorpay order and verifies payment
+		     signatures. TEST MODE only: the gateway refuses non-rzp_test_ keys.
+		     Only exercised when RAZORPAY_KEY_ID/RAZORPAY_KEY_SECRET are set. -->
+		<dependency>
+			<groupId>com.razorpay</groupId>
+			<artifactId>razorpay-java</artifactId>
+			<version>1.4.7</version>
+		</dependency>
+
+		<!-- In-memory database so the payment integration tests run without MySQL -->
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 	<dependencyManagement>

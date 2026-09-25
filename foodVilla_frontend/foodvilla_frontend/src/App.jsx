@@ -20,7 +20,6 @@
     import AdminFoodItems from "./components/admin/AdminFoodItems";
     import AdminOrders from "./components/admin/AdminOrders";
     import AdminOrderDetail from "./components/admin/AdminOrderDetail";
-    import AdminDelivery from "./components/admin/AdminDelivery";
     import AdminUsers from "./components/admin/AdminUsers";
 
     function App() {
@@ -76,7 +75,6 @@
                     <Route path="food-items" element={<AdminFoodItems />} />
                     <Route path="orders" element={<AdminOrders />} />
                     <Route path="orders/:id" element={<AdminOrderDetail />} />
-                    <Route path="delivery" element={<AdminDelivery />} />
                     <Route path="users" element={<AdminUsers />} />
                   </Route>
                 </Routes>

@@ -9,8 +9,8 @@ required variable is missing — this is intentional.
 
 | Variable | Used by | Purpose |
 |---|---|---|
-| `DB_PASSWORD` | `user-service`, `restaurant-service`, `foodcatalogue-service`, `order-service`, `payment-service`, `delivery-service`, `notification-service` | MySQL password for the local `root` user (all seven services connect to the same local MySQL instance, in separate schemas). |
-| `JWT_SECRET` | `user-service`, `restaurant-service`, `foodcatalogue-service`, `order-service`, `payment-service`, `delivery-service`, `notification-service` | HMAC-SHA256 signing key for issuing (`user-service`) or validating (the other six) JWTs. Use a long, random string (32+ characters) — never reuse an example or previously-committed value. Since `user-service` login now issues a `userId` claim alongside `role`, keep the secret identical across all seven services or tokens will fail validation. |
+| `DB_PASSWORD` | `user-service`, `restaurant-service`, `foodcatalogue-service`, `order-service` | MySQL password for the local `root` user (all four services connect to the same local MySQL instance, in separate schemas). |
+| `JWT_SECRET` | `user-service`, `restaurant-service`, `foodcatalogue-service`, `order-service` | HMAC-SHA256 signing key for issuing (`user-service`) or validating (the other three) JWTs. Use a long, random string (32+ characters) — never reuse an example or previously-committed value. Since `user-service` login now issues a `userId` claim alongside `role`, keep the secret identical across all four services or tokens will fail validation. |
 
 `eureka_server` does not require any secret. `api-gateway` (routing only, does not validate JWTs) does not require `JWT_SECRET` either.
 
@@ -26,37 +26,23 @@ required variable is missing — this is intentional.
 | `ORDER_SERVICE_URL` | `api-gateway` | `http://localhost:8084` | Bare origin for order-service. |
 | `ORDER_DELIVERY_FEE` | `order-service` | `40` | Flat delivery fee (₹) added to every order. Placeholder until a real fee engine exists. |
 | `ORDER_TAX_RATE` | `order-service` | `0.05` | Flat tax rate applied to the item subtotal. Placeholder until real tax rules exist. |
-| `ORDER_SERVICE_URL` | `payment-service` | `http://localhost:8084/api/orders/` | **Full path** — payment-service fetches the authoritative order total from here before creating a payment. Same dual-shape note as `RESTAURANT_SERVICE_URL`/`CATALOGUE_SERVICE_URL` applies vs. the gateway's bare-origin usage of the same name. |
-| `PAYMENT_SERVICE_URL` | `api-gateway` | `http://localhost:8085` | Bare origin for payment-service. |
-| `PAYMENT_PROVIDER` | `payment-service` | `mock` | `mock` (default, safe for local dev, no external calls/real money) or `razorpay`. |
-| `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` | `payment-service` | *(none)* | Only required when `PAYMENT_PROVIDER=razorpay`. Use your Razorpay **test-mode** keys. The Razorpay integration (order creation + webhook signature verification) has not been exercised against a live Razorpay account in this environment — verify it yourself end-to-end before relying on it. |
-| `DELIVERY_SERVICE_URL` | `api-gateway` | `http://localhost:8086` | Bare origin for delivery-service. |
-| `NOTIFICATION_SERVICE_URL` | `api-gateway` | `http://localhost:8087` | Bare origin for notification-service. |
+| `RAZORPAY_KEY_ID` | `order-service` | *(unset)* | Razorpay **TEST MODE** key id (`rzp_test_…`, public). Live keys are refused. Without it (and the secret) payments are unavailable but the service still starts. See [PAYMENTS.md](../PAYMENTS.md). |
+| `RAZORPAY_KEY_SECRET` | `order-service` | *(unset)* | Razorpay test key **secret**. Backend only — never sent to the browser, never logged; supply it as an environment secret, never in a tracked file. |
+| `PAYMENT_PENDING_ORDER_TTL_MINUTES` | `order-service` | `30` | How long an unpaid order can still start a payment. |
 
-**Restaurant/delivery-partner accounts:** there is no restaurant-staff or
-delivery-partner login yet — only `USER`/`ADMIN` exist. The restaurant
-accept/reject/preparing/ready endpoints (`restaurant-service`,
-`/api/restaurants/{restaurantId}/orders/{orderId}/...`) and all of
-`delivery-service` are ADMIN-only for now, standing in for a real
-operator/dispatch console until dedicated roles are built.
+**Restaurant accounts:** there is no restaurant-staff login yet — only
+`USER`/`ADMIN` exist. The restaurant accept/reject/preparing/ready endpoints
+(`restaurant-service`, `/api/restaurants/{restaurantId}/orders/{orderId}/...`)
+and the order status override (`PUT /api/orders/{id}/status`, used to mark an
+order out for delivery / delivered) are ADMIN-only for now, standing in for a
+real operator console until dedicated roles are built.
 
-## Notifications & real-time updates
-
-`notification-service` consumes `foodvilla.order.events` only — order-service
-re-publishes there on every transition regardless of origin (payment,
-restaurant, delivery, or admin action), so that's the single source of truth
-for "what happened to this order." Each customer-facing transition becomes
-an in-app `Notification` row and is pushed live over SSE to
-`GET /api/notifications/stream` to any connected browser tab for that user.
-
-Browsers' `EventSource` API can't set custom headers, so that one endpoint
-accepts the JWT as `?token=<jwt>` instead of an `Authorization` header
-(`JwtFilter` falls back to the query param only when no header is present —
-every other endpoint still requires the header as normal).
-
-Mobile push (`POST /api/notifications/devices`) only **stores** the device
-token — no push provider (Expo/FCM) is wired up to actually send anything
-yet. Wiring that in is part of the React Native work (Phase 8).
+**Removed services:** `payment-service`, `delivery-service` and
+`notification-service` (and their `PAYMENT_*` / `DELIVERY_*` /
+`NOTIFICATION_*` variables) no longer exist. See
+[REMOVED_SERVICES.md](../REMOVED_SERVICES.md). Payments are back, but inside
+`order-service` (Razorpay test mode) — hence the `RAZORPAY_*` variables above and
+[PAYMENTS.md](../PAYMENTS.md); `PAYMENT_PROVIDER` is not read by anything.
 
 ## Kafka
 
@@ -100,11 +86,12 @@ without setting these makes the broker answer with a TLS alert that the client
 misreads as a ~336 MiB response length, failing with `OutOfMemoryError` in
 `NetworkReceive.readFrom` regardless of the fetch-size limits.
 
-Topics (`foodvilla.order.events`, `foodvilla.payment.events`,
-`foodvilla.restaurant.events`, `foodvilla.delivery.events`) are
+Topics (`foodvilla.restaurant.events`, which `restaurant-service` publishes
+and `order-service` consumes, and `foodvilla.order.events`, which
+`order-service` publishes and nothing in this repo currently consumes) are
 auto-created on first publish/subscribe against the local broker — no
 manual provisioning needed for development. Each is overridable
-(`KAFKA_TOPIC_ORDER_EVENTS`, etc.) if you need non-default names. A
+(`KAFKA_TOPIC_RESTAURANT_EVENTS`, `KAFKA_TOPIC_ORDER_EVENTS`) if you need non-default names. A
 production cluster (e.g. MSK) may have auto-create disabled — provision
 these topics explicitly before deploying there.
 

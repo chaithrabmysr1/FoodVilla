@@ -2,6 +2,8 @@ package com.example.foodVilla.order_service.controller;
 
 import com.example.foodVilla.order_service.dto.CancelOrderRequest;
 import com.example.foodVilla.order_service.dto.CreateOrderRequest;
+import com.example.foodVilla.order_service.dto.OrderQuoteRequest;
+import com.example.foodVilla.order_service.dto.OrderQuoteResponse;
 import com.example.foodVilla.order_service.dto.OrderResponse;
 import com.example.foodVilla.order_service.dto.OrderStatusUpdateRequest;
 import com.example.foodVilla.order_service.entity.OrderStatus;
@@ -37,6 +39,13 @@ public class OrderController {
         OrderCreationResult result = orderService.createOrder(principal, request, idempotencyKey);
         HttpStatus status = result.created() ? HttpStatus.CREATED : HttpStatus.OK;
         return ResponseEntity.status(status).body(orderService.toResponse(result.order()));
+    }
+
+    // Prices a cart (delivery fee, tax, total) without creating anything, so
+    // checkout can show the real bill before "Proceed to Payment".
+    @PostMapping("/quote")
+    public ResponseEntity<OrderQuoteResponse> quote(@Valid @RequestBody OrderQuoteRequest request) {
+        return ResponseEntity.ok(orderService.quote(request));
     }
 
     @GetMapping
