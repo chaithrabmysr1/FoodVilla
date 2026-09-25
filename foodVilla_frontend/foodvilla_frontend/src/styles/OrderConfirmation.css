@@ -1,0 +1,376 @@
+/* Order confirmed / order details page — every rule is scoped to the oc-*
+   prefix (plus one descendant override for the shared timeline, below) so the
+   shared order and cart styles are left exactly as they were. Colours are
+   explicit so the page reads the same in light and dark OS themes. */
+
+.oc-page {
+  width: 92%;
+  max-width: 980px;
+  margin: 24px auto 48px;
+  font-family: "Segoe UI", Arial, sans-serif;
+  color: #222;
+  text-align: left;
+}
+
+/* ---- Confirmation hero ---- */
+.oc-hero {
+  text-align: center;
+  background: linear-gradient(180deg, #eaf7ee 0%, #ffffff 100%);
+  border: 1px solid #d6efdd;
+  border-radius: 14px;
+  padding: 28px 20px 24px;
+  margin-bottom: 20px;
+}
+
+.oc-hero h2 {
+  margin: 14px 0 6px;
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #1e7e34;
+}
+
+.oc-hero-sub {
+  margin: 0 auto 14px;
+  max-width: 460px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #555;
+}
+
+.oc-order-id {
+  display: inline-block;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background-color: #fff;
+  border: 1px solid #d6efdd;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1e7e34;
+}
+
+.oc-check {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto;
+}
+
+.oc-check svg {
+  width: 100%;
+  height: 100%;
+}
+
+.oc-check-circle {
+  fill: #28a745;
+  transform-origin: center;
+  animation: oc-pop 0.45s ease-out both;
+}
+
+.oc-check-mark {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 4.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+  animation: oc-draw 0.4s ease-out 0.35s forwards;
+}
+
+@keyframes oc-pop {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes oc-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oc-check-circle,
+  .oc-check-mark {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ---- Plain header (when opened from order history) ---- */
+.oc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.oc-header h2 {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #222;
+}
+
+.oc-header p {
+  margin: 2px 0 0;
+  font-size: 0.9rem;
+  color: #777;
+}
+
+/* ---- Layout + cards ---- */
+.oc-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 20px;
+  align-items: start;
+}
+
+.oc-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.oc-card {
+  background-color: #fff;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.oc-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.oc-card-head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #222;
+}
+
+/* The shared timeline draws its own card; inside an oc-card it should sit
+   flat. Scoped to .oc-card so the timeline looks unchanged everywhere else. */
+.oc-card .order-timeline {
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background-color: transparent;
+}
+
+/* ---- Status chip ---- */
+.oc-status {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background-color: #fff3e9;
+  color: #ff6600;
+}
+
+.oc-status.done {
+  background-color: #e6f7ec;
+  color: #1e7e34;
+}
+
+.oc-status.failed {
+  background-color: #ffefed;
+  color: #c62828;
+}
+
+/* ---- Items ---- */
+.oc-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.oc-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 0;
+  border-top: 1px solid #f0f0f0;
+}
+
+.oc-item:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+.oc-item:last-child {
+  padding-bottom: 0;
+}
+
+.oc-item-text {
+  min-width: 0;
+}
+
+.oc-item-name {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #222;
+  overflow-wrap: anywhere;
+}
+
+.oc-item-meta {
+  margin: 4px 0 0;
+  font-size: 0.82rem;
+  color: #777;
+}
+
+.oc-item-total {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #222;
+  white-space: nowrap;
+}
+
+/* ---- Address ---- */
+.oc-address {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.oc-address-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #fff3e9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+}
+
+.oc-address p {
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: #555;
+  overflow-wrap: anywhere;
+}
+
+.oc-address .oc-address-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #222;
+}
+
+.oc-chip {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #ff6600;
+  background-color: #fff3e9;
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+
+/* ---- Bill ---- */
+.oc-bill div {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+  font-size: 0.92rem;
+  color: #444;
+}
+
+.oc-bill .oc-bill-discount {
+  color: #1e7e34;
+}
+
+.oc-bill .oc-bill-total {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px dashed #ddd;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #222;
+}
+
+/* ---- Actions ---- */
+.oc-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.oc-btn {
+  width: 100%;
+  padding: 12px 18px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.oc-btn.primary {
+  background-color: #28a745;
+  color: #fff;
+}
+
+.oc-btn.primary:hover {
+  background-color: #218838;
+  border-color: transparent;
+}
+
+.oc-btn.secondary {
+  background-color: #fff;
+  border-color: #28a745;
+  color: #1e7e34;
+}
+
+.oc-btn.secondary:hover {
+  background-color: #eaf7ee;
+  border-color: #28a745;
+}
+
+.oc-btn.danger {
+  background-color: #fff;
+  border-color: #ff3b30;
+  color: #d8281e;
+}
+
+.oc-btn.danger:hover:not(:disabled) {
+  background-color: #ffefed;
+  border-color: #ff3b30;
+}
+
+.oc-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 800px) {
+  .oc-layout {
+    grid-template-columns: 1fr;
+  }
+}

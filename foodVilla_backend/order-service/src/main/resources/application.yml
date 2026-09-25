@@ -1,0 +1,117 @@
+server:
+  port: ${PORT:8084}  # unique port for order-service
+
+spring:
+  application:
+    name: order-service
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/foodvilla_orderService}
+    username: ${DB_USERNAME:root}
+    # Supplied externally — set the DB_PASSWORD environment variable before
+    # starting this service. See foodVilla_backend/CONFIGURATION.md.
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+logging:
+  level:
+    com.example.foodVilla.order_service: DEBUG
+
+cors:
+  allowed:
+    origin: ${CORS_ALLOWED_ORIGIN:http://localhost:5173}
+
+# Base URL of foodcatalogue-service's aggregate catalogue endpoint, called
+# directly (no service discovery). Used to fetch authoritative restaurant
+# name + food item name/price snapshots when an order is created.
+# NOTE: this includes the /api/catalogue/ path, unlike the gateway's
+# CATALOGUE_SERVICE_URL (bare origin) — see CONFIGURATION.md.
+catalogue:
+  service:
+    url: ${CATALOGUE_SERVICE_URL:http://localhost:8083/api/catalogue/}
+
+# JWT signing secret — supplied externally via the JWT_SECRET environment
+# variable (same value used by user-service). See foodVilla_backend/CONFIGURATION.md.
+jwt:
+  secret: ${JWT_SECRET}
+
+# Placeholder pricing rules until a real fee/tax engine exists.
+order:
+  delivery-fee: ${ORDER_DELIVERY_FEE:40}
+  tax-rate: ${ORDER_TAX_RATE:0.05}
+
+# Razorpay TEST MODE payments (portfolio/demo — no real money). Both values come
+# from the environment and are optional: without them the service still starts
+# and everything except paying for an order works; payment endpoints answer 503
+# PAYMENT_NOT_CONFIGURED. The key id must be a rzp_test_ key — live keys are
+# rejected. The secret stays on the backend; it is never sent to the browser.
+payment:
+  razorpay:
+    key-id: ${RAZORPAY_KEY_ID:}
+    key-secret: ${RAZORPAY_KEY_SECRET:}
+  # An order that is still unpaid after this long can no longer start a payment.
+  pending-order-ttl-minutes: ${PAYMENT_PENDING_ORDER_TTL_MINUTES:30}
+
+spring.kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  # Connection security is environment-driven so the same build runs against the
+  # local Docker broker (PLAINTEXT, the default) and a SASL_SSL cluster such as
+  # Aiven on Render. Kafka clients default to PLAINTEXT, so pointing one at a
+  # TLS-only port without these set can exhaust the heap in NetworkReceive.
+  # Set KAFKA_SASL_JAAS_CONFIG only as a Render secret — never commit it.
+  security:
+    protocol: ${KAFKA_SECURITY_PROTOCOL:PLAINTEXT}
+  # TLS trust for the Kafka clients only (not the JVM-wide truststore): points at
+  # the spring.ssl bundle below, so a private CA such as Aiven's can be trusted.
+  ssl:
+    bundle: kafka-ca
+  # Common client properties (applied to the producer, consumer and admin client).
+  # Empty defaults are ignored by the PLAINTEXT channel.
+  properties:
+    sasl.mechanism: ${KAFKA_SASL_MECHANISM:}
+    sasl.jaas.config: ${KAFKA_SASL_JAAS_CONFIG:}
+  producer:
+    key-serializer: org.apache.kafka.common.serialization.StringSerializer
+    value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    acks: all
+  consumer:
+    group-id: order-service
+    key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+    properties:
+      spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+      spring.json.trusted.packages: com.example.foodVilla.order_service.event
+      max.partition.fetch.bytes: 1048576
+      fetch.max.bytes: 5242880
+    max-poll-records: 50
+    auto-offset-reset: earliest
+
+# CA certificate the Kafka clients use to verify the broker (e.g. Aiven's ca.pem).
+# KAFKA_SSL_CA_CERTIFICATE is either the PEM text itself or a location such as
+# file:/etc/secrets/aiven-kafka-ca.pem (a Render Secret File). Certificate
+# verification stays ON; when empty (local PLAINTEXT) the JVM default trust is used.
+# The CA is public data, but it is supplied at deploy time rather than committed.
+spring.ssl:
+  bundle:
+    pem:
+      kafka-ca:
+        truststore:
+          certificate: ${KAFKA_SSL_CA_CERTIFICATE:}
+
+# Kafka topic names — override per environment if needed.
+kafka:
+  topic:
+    order-events: ${KAFKA_TOPIC_ORDER_EVENTS:foodvilla.order.events}
+    restaurant-events: ${KAFKA_TOPIC_RESTAURANT_EVENTS:foodvilla.restaurant.events}
+
+# Only the health endpoint is exposed — no env/beans/etc. leaking over HTTP.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never

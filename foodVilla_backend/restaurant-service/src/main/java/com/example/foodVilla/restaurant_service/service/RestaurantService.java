@@ -36,6 +36,8 @@ public class RestaurantService {
             restaurant.setDeliveryTime(updated.getDeliveryTime());
             restaurant.setAddress(updated.getAddress());
             restaurant.setImageUrl(updated.getImageUrl());
+            restaurant.setCostForTwo(updated.getCostForTwo());
+            restaurant.setIsOpen(updated.getIsOpen());
             return restaurantRepository.save(restaurant);
         }).orElseThrow(() -> new ResourceNotFoundException("Restaurant not found with ID: " + id));
     }

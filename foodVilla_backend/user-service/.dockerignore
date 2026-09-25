@@ -1,0 +1,15 @@
+target/
+.idea/
+*.iml
+.DS_Store
+*.log
+.git
+.mvn/wrapper/maven-wrapper.jar
+.env
+.env.*
+application-local.properties
+application-local.yml
+application-secrets.properties
+application-secrets.yml
+*.pem
+*.key

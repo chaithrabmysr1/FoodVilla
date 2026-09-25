@@ -1,0 +1,345 @@
+/* Cart page — every rule is scoped to the ct-* prefix so the shared cart
+   styles in Cart.css are left exactly as they were. Colours are explicit so
+   the page reads the same in light and dark OS themes. */
+
+.ct-page {
+  width: 92%;
+  max-width: 980px;
+  margin: 24px auto 48px;
+  min-height: 60vh;
+  font-family: "Segoe UI", Arial, sans-serif;
+  color: #222;
+  text-align: left;
+}
+
+.ct-title {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 0 0 20px;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #222;
+}
+
+.ct-count {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #777;
+}
+
+.ct-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 20px;
+  align-items: start;
+}
+
+.ct-card {
+  background-color: #fff;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.ct-card h3 {
+  margin: 0 0 14px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #222;
+}
+
+/* ---- Items ---- */
+.ct-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ct-item {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto 80px auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0;
+  border-top: 1px solid #f0f0f0;
+}
+
+.ct-item:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+.ct-item:last-child {
+  padding-bottom: 0;
+}
+
+.ct-item-img {
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+  object-fit: cover;
+  background-color: #f3f3f3;
+}
+
+.ct-item-name {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #222;
+  overflow-wrap: anywhere;
+}
+
+.ct-item-price {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: #777;
+}
+
+.ct-item-total {
+  margin: 0;
+  text-align: right;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #222;
+  white-space: nowrap;
+}
+
+/* Veg / non-veg marker (square with a dot), as on Swiggy/Zomato */
+.ct-veg {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  margin-top: 3px;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.ct-veg::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+.ct-veg.veg {
+  color: #0f8a3b;
+}
+
+.ct-veg.nonveg {
+  color: #d93025;
+}
+
+/* Quantity stepper */
+.ct-stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #fff;
+}
+
+.ct-stepper button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background-color: #fff;
+  color: #28a745;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ct-stepper button:hover:not(:disabled) {
+  background-color: #eaf7ee;
+  border-color: transparent;
+}
+
+.ct-stepper button:disabled {
+  color: #bbb;
+  cursor: not-allowed;
+}
+
+.ct-stepper span {
+  min-width: 28px;
+  text-align: center;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #222;
+}
+
+.ct-remove {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background-color: transparent;
+  font-size: 1rem;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.ct-remove:hover {
+  background-color: #ffefed;
+  border-color: transparent;
+  opacity: 1;
+}
+
+/* ---- Bill summary ---- */
+.ct-summary {
+  position: sticky;
+  top: 16px;
+}
+
+.ct-bill-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.ct-bill-note {
+  margin: 10px 0 16px;
+  padding-top: 10px;
+  border-top: 1px dashed #ddd;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #777;
+}
+
+.ct-btn {
+  display: block;
+  width: 100%;
+  padding: 12px 18px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.ct-btn + .ct-btn {
+  margin-top: 10px;
+}
+
+.ct-btn.primary {
+  background-color: #28a745;
+  color: #fff;
+}
+
+.ct-btn.primary:hover {
+  background-color: #218838;
+  border-color: transparent;
+}
+
+.ct-btn.secondary {
+  background-color: #fff;
+  border-color: #ff6600;
+  color: #ff6600;
+}
+
+.ct-btn.secondary:hover {
+  background-color: #fff3e9;
+  border-color: #ff6600;
+}
+
+/* ---- Empty state ---- */
+.ct-empty {
+  max-width: 420px;
+  margin: 60px auto 0;
+  padding: 36px 24px;
+  text-align: center;
+  background-color: #fff;
+  border: 1px solid #eee;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.ct-empty-icon {
+  width: 84px;
+  height: 84px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background-color: #fff3e9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.4rem;
+}
+
+.ct-empty h2 {
+  margin: 0 0 8px;
+  font-size: 1.3rem;
+  color: #222;
+}
+
+.ct-empty p {
+  margin: 0 0 20px;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: #777;
+}
+
+/* ---- Responsive ---- */
+/* The item row (image, name, stepper, total, remove) plus the 340px bill column
+   need roughly 1000px; below that the name column collapses to a few pixels,
+   so stack the bill under the items instead. */
+@media (max-width: 1000px) {
+  .ct-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .ct-summary {
+    position: static;
+  }
+}
+
+@media (max-width: 560px) {
+  .ct-item {
+    grid-template-columns: 60px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "img info remove"
+      "img stepper total";
+    row-gap: 10px;
+  }
+
+  .ct-item-img {
+    grid-area: img;
+    width: 60px;
+    height: 60px;
+  }
+
+  .ct-item-info {
+    grid-area: info;
+  }
+
+  .ct-remove {
+    grid-area: remove;
+    align-self: start;
+  }
+
+  .ct-stepper {
+    grid-area: stepper;
+    justify-self: start;
+  }
+
+  .ct-item-total {
+    grid-area: total;
+  }
+}

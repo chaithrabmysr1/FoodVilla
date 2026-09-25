@@ -12,7 +12,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/catalogue")
-@CrossOrigin(origins = "${cors.allowed.origin}")
 public class FoodCatalogueController {
 
     @Autowired

@@ -11,11 +11,11 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "${cors.allowed.origin}")
 public class AuthController {
 
     private final UserRepository userRepository;
@@ -39,6 +39,9 @@ public class AuthController {
         user.setFullName(request.getFullName());
         user.setPhoneNumber(request.getPhoneNumber());
         user.setAddress(request.getAddress());
+        user.setCity(request.getCity());
+        user.setState(request.getState());
+        user.setPincode(request.getPincode());
         // Role is always assigned server-side; client-supplied role is ignored
         // to prevent self-assignment of elevated roles at signup.
         user.setRole("USER");
@@ -52,15 +55,20 @@ public class AuthController {
         return userRepository.findByEmail(request.getEmail())
                 .map(u -> {
                     if (passwordEncoder.matches(request.getPassword(), u.getPassword())) {
-                        String token = jwtUtil.generateToken(u.getEmail(), u.getRole());
-                        return ResponseEntity.ok(Map.of(
-                                "token", token,
-                                "fullName", u.getFullName(),
-                                "phoneNumber", u.getPhoneNumber(),
-                                "address", u.getAddress(),
-                                "role", u.getRole(),
-                                "message", "Login successful ✅"
-                        ));
+                        String token = jwtUtil.generateToken(u.getEmail(), u.getRole(), u.getId());
+                        // HashMap, not Map.of: city/state/pincode are null for accounts
+                        // created before signup collected them, and Map.of rejects nulls.
+                        Map<String, Object> body = new HashMap<>();
+                        body.put("token", token);
+                        body.put("fullName", u.getFullName());
+                        body.put("phoneNumber", u.getPhoneNumber());
+                        body.put("address", u.getAddress());
+                        body.put("city", u.getCity());
+                        body.put("state", u.getState());
+                        body.put("pincode", u.getPincode());
+                        body.put("role", u.getRole());
+                        body.put("message", "Login successful ✅");
+                        return ResponseEntity.ok(body);
                     } else {
                         return ResponseEntity.badRequest().body(Map.of("message", "Invalid credentials ❌"));
                     }

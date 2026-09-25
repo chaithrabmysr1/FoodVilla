@@ -12,7 +12,7 @@
       },
       {
         question: "What payment methods are available?",
-        answer: "You can pay using credit/debit cards, net banking, UPI, or cash on delivery."
+        answer: "Payments go through Razorpay Checkout (cards, net banking, UPI). FoodVilla is a portfolio demo running Razorpay in test mode, so no real money is ever charged — use Razorpay's test card or test UPI details. Cash on delivery is not available."
       },
       {
         question: "How do I cancel my order?",

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import { signup as signupApi } from "../services/authApi";
 import "../styles/Auth.css";
 
 const Signup = () => {
@@ -11,6 +11,9 @@ const Signup = () => {
     password: "",
     phoneNumber: "",
     address: "",
+    city: "",
+    state: "",
+    pincode: "",
     role: "USER", // ✅ default role
   });
   const [message, setMessage] = useState("");
@@ -24,10 +27,7 @@ const Signup = () => {
     setMessage("");
 
     try {
-      const res = await axios.post(
-        "http://localhost:8081/api/auth/signup",
-        formData
-      );
+      const res = await signupApi(formData);
       setMessage(res.data.message);
       if (res.status === 200) {
         setTimeout(() => navigate("/login"), 1500);
@@ -78,8 +78,36 @@ const Signup = () => {
           <input
             type="text"
             name="address"
-            placeholder="Address"
+            placeholder="Address (house no., street, area)"
             value={formData.address}
+            onChange={handleChange}
+            required
+          />
+          <input
+            type="text"
+            name="city"
+            placeholder="City"
+            value={formData.city}
+            onChange={handleChange}
+            required
+          />
+          <input
+            type="text"
+            name="state"
+            placeholder="State"
+            value={formData.state}
+            onChange={handleChange}
+            required
+          />
+          <input
+            type="text"
+            name="pincode"
+            placeholder="Pincode"
+            inputMode="numeric"
+            pattern="[0-9]{6}"
+            title="Enter a 6-digit pincode"
+            maxLength={6}
+            value={formData.pincode}
             onChange={handleChange}
             required
           />

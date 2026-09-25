@@ -1,0 +1,17 @@
+package com.example.foodVilla.order_service.entity;
+
+public enum OrderStatus {
+    CREATED,
+    PAYMENT_PENDING,
+    PAYMENT_CONFIRMED,
+    RESTAURANT_PENDING,
+    RESTAURANT_ACCEPTED,
+    PREPARING,
+    READY_FOR_PICKUP,
+    DELIVERY_PARTNER_ASSIGNED,
+    PICKED_UP,
+    OUT_FOR_DELIVERY,
+    DELIVERED,
+    CANCELLED,
+    PAYMENT_FAILED
+}
