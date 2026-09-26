@@ -42,6 +42,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
   margin-bottom: 16px;
 }
 
@@ -120,6 +122,19 @@
   border-bottom: none;
 }
 
+/* Wide tables scroll inside this box instead of stretching the whole page.
+   The card look (radius + shadow) moves from the table onto the box. */
+.admin-table-wrap {
+  overflow-x: auto;
+  border-radius: 10px;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+}
+
+.admin-table-wrap > .admin-table {
+  border-radius: 0;
+  box-shadow: none;
+}
+
 .admin-form {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -129,6 +144,8 @@
 .admin-form input,
 .admin-form select,
 .admin-form textarea {
+  max-width: 100%;
+  min-width: 0;
   padding: 8px 10px;
   border: 1px solid #ddd;
   border-radius: 6px;
@@ -139,6 +156,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
   font-size: 0.8rem;
   color: #555;
 }
@@ -173,13 +191,92 @@
 
 .admin-filter-bar {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 14px;
 }
 
 .admin-filter-bar select,
 .admin-filter-bar input {
+  max-width: 100%;
+  min-width: 0;
   padding: 6px 10px;
   border: 1px solid #ddd;
   border-radius: 6px;
+}
+
+/* selects placed loose inside a card (e.g. "Force status" on an order) */
+.admin-card select {
+  max-width: 100%;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 900px) {
+  /* The fixed 200px sidebar becomes a horizontal strip above the content. */
+  .admin-shell {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .admin-sidebar {
+    display: flex;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0;
+    overflow-x: auto;
+  }
+
+  .admin-sidebar a {
+    flex: none;
+    white-space: nowrap;
+  }
+
+  .admin-form {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  }
+
+  .admin-form input:not([type="checkbox"]),
+  .admin-form select,
+  .admin-form textarea {
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+@media (max-width: 520px) {
+  .admin-sidebar a {
+    padding: 12px 14px;
+  }
+
+  .admin-form-actions .admin-btn {
+    flex: 1;
+  }
+
+  .admin-filter-bar select,
+  .admin-filter-bar input {
+    flex: 1 1 100%;
+  }
+}
+
+/* Touch screens: ~44px controls (padding only, same look) */
+@media (pointer: coarse) {
+  .admin-btn {
+    min-height: 44px;
+  }
+
+  .admin-sidebar a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+
+  .admin-filter-bar select,
+  .admin-filter-bar input,
+  .admin-card select,
+  .admin-form input:not([type="checkbox"]),
+  .admin-form select {
+    min-height: 44px;
+    box-sizing: border-box;
+  }
 }

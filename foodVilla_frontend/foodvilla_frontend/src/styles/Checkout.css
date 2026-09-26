@@ -103,7 +103,7 @@
 }
 
 .co-chip {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -392,5 +392,25 @@
   .co-item-img {
     width: 52px;
     height: 52px;
+  }
+}
+
+/* Touch screens: ~44px tap areas for the small controls, without changing how they look. */
+@media (pointer: coarse) {
+  .co-link-btn,
+  .co-label-opt {
+    position: relative;
+  }
+
+  .co-link-btn::after {
+    content: "";
+    position: absolute;
+    inset: -10px -4px;
+  }
+
+  .co-label-opt::after {
+    content: "";
+    position: absolute;
+    inset: -8px 0;
   }
 }

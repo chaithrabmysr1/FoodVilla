@@ -36,6 +36,7 @@ const AdminUsers = () => {
       {users.length === 0 ? (
         <p className="admin-empty">No users found.</p>
       ) : (
+        <div className="admin-table-wrap">
         <table className="admin-table">
           <thead>
             <tr>
@@ -61,6 +62,7 @@ const AdminUsers = () => {
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );

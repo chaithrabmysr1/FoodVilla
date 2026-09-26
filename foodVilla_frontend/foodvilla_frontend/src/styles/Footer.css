@@ -3,6 +3,7 @@
   color: #fff;
   padding: 40px 20px;
   width: 100%;
+  box-sizing: border-box; /* width:100% + padding was 40px wider than the viewport */
   margin-top: auto; /* this ensures it stays at the bottom if space allows */
 }
 
@@ -49,4 +50,13 @@
 .footer-link:hover {
   color: #ffb400;
   text-decoration: underline;
+}
+
+/* Touch screens: give the links a ~44px tap area (spacing only, same look). */
+@media (pointer: coarse) {
+  .footer-column li .footer-link,
+  .social-links .footer-link {
+    display: inline-block;
+    padding: 13px 0;
+  }
 }

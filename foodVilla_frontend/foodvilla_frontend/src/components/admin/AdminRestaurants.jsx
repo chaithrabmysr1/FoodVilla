@@ -151,6 +151,7 @@ const AdminRestaurants = () => {
       {restaurants.length === 0 ? (
         <p className="admin-empty">No restaurants yet.</p>
       ) : (
+        <div className="admin-table-wrap">
         <table className="admin-table">
           <thead>
             <tr>
@@ -185,6 +186,7 @@ const AdminRestaurants = () => {
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );

@@ -52,6 +52,7 @@ const AdminOrders = () => {
       {orders.length === 0 ? (
         <p className="admin-empty">No orders found.</p>
       ) : (
+        <div className="admin-table-wrap">
         <table className="admin-table">
           <thead>
             <tr>
@@ -82,6 +83,7 @@ const AdminOrders = () => {
             ))}
           </tbody>
         </table>
+        </div>
       )}
 
       {pageData && pageData.totalPages > 1 && (

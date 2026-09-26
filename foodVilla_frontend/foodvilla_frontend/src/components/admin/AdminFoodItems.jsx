@@ -167,6 +167,7 @@ const AdminFoodItems = () => {
       {visibleItems.length === 0 ? (
         <p className="admin-empty">No food items yet.</p>
       ) : (
+        <div className="admin-table-wrap">
         <table className="admin-table">
           <thead>
             <tr>
@@ -198,6 +199,7 @@ const AdminFoodItems = () => {
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );

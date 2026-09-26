@@ -28,6 +28,7 @@
 .pay-mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.85em;
+  font-size: max(0.85em, 12px);
   overflow-wrap: anywhere;
 }
 
@@ -203,6 +204,19 @@
 .pm-back:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Touch screens: ~44px tap area without changing how the link looks. */
+@media (pointer: coarse) {
+  .pm-back {
+    position: relative;
+  }
+
+  .pm-back::after {
+    content: "";
+    position: absolute;
+    inset: -8px 0;
+  }
 }
 
 .pm-title {

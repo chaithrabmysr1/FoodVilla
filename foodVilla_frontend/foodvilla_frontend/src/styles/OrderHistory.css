@@ -96,7 +96,7 @@
   border-radius: 10px;
   background-color: rgba(0, 0, 0, 0.68);
   color: #fff;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
   line-height: 1.5;
 }
@@ -212,6 +212,13 @@
 .oh-pagination button:disabled {
   color: #bbb;
   cursor: not-allowed;
+}
+
+/* Touch screens: ~44px buttons (padding only, same look). */
+@media (pointer: coarse) {
+  .oh-pagination button {
+    min-height: 44px;
+  }
 }
 
 /* ---- Empty state ---- */
