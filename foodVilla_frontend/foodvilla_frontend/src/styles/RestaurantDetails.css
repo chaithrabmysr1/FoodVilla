@@ -1,81 +1,193 @@
-/* ===== Restaurant Details Page ===== */
+/* ===== Restaurant Details Page =====
+   The look of the page lives in rd-* classes. The food item image and its
+   text block (.food-item-row img, .food-text) are deliberately unchanged.
+   Colours are explicit so the page reads the same in light and dark OS
+   themes, and every button sets its own border/hover because index.css gives
+   all <button>s a dark fill and a purple hover border. */
 .restaurant-details-page {
+  --rd-orange: #ff6600;
+  --rd-orange-dark: #e55b00;
+  --rd-orange-tint: #fff4ec;
+  --rd-orange-line: #ffd9bf;
+  --rd-ink: #1f2937;
+  --rd-muted: #6b7280;
+  --rd-line: #eeeeee;
+
   width: 90%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px 0;
+  padding: 24px 0 40px;
   font-family: Arial, sans-serif;
 }
 
-/* ===== Restaurant Header ===== */
-.restaurant-header {
+/* ===== Restaurant hero card ===== */
+.rd-hero {
+  position: relative;
+  overflow: hidden;
   background-color: #fff;
-  padding: 20px 25px;
-  border-radius: 10px;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
-  margin-bottom: 25px;
+  border: 1px solid var(--rd-line);
+  border-radius: 16px;
+  padding: 26px 28px 22px;
+  margin-bottom: 30px;
+  box-shadow: 0 6px 20px rgba(17, 24, 39, 0.06);
 }
 
-.restaurant-header h1 {
-  margin: 0;
-  font-size: 1.8rem;
-  font-weight: bold;
+.rd-hero::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #ff6600, #ffa24d);
 }
 
-.restaurant-status {
-  margin: 5px 0;
-  font-weight: 500;
-}
-
-.restaurant-status.open {
-  color: #28a745;
-}
-
-.restaurant-status.closed {
-  color: #ff3b30;
-}
-
-.restaurant-meta {
+.rd-hero-top {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.rd-name {
+  margin: 0;
+  font-size: clamp(1.6rem, 3.2vw, 2.2rem);
+  line-height: 1.2;
+  font-weight: 800;
+  color: var(--rd-ink);
+}
+
+.rd-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.rd-status::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+.rd-status.open {
+  color: #1a7f3c;
+  background-color: #e8f7ee;
+}
+
+.rd-status.closed {
+  color: #c62828;
+  background-color: #fdecec;
+}
+
+.rd-facts {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 12px;
   font-size: 0.95rem;
-  color: #555;
-  margin: 5px 0;
+  color: var(--rd-muted);
 }
 
-.restaurant-cuisines {
-  margin: 5px 0;
-  color: #333;
-  font-weight: 500;
+.rd-rating {
+  padding: 2px 9px;
+  border-radius: 6px;
+  background-color: #24963f;
+  color: #fff;
+  font-weight: 700;
 }
 
-.restaurant-address {
-  margin-top: 5px;
-  color: #777;
+.rd-fact::before {
+  content: "•";
+  margin-right: 12px;
+  color: #c4c4c4;
+}
+
+.rd-cuisines {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rd-cuisines li {
+  padding: 3px 12px;
+  border: 1px solid var(--rd-orange-line);
+  border-radius: 999px;
+  background-color: var(--rd-orange-tint);
+  color: var(--rd-orange-dark);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.rd-muted {
+  margin: 14px 0 0;
   font-size: 0.9rem;
+  color: var(--rd-muted);
+}
+
+.rd-address {
+  margin: 10px 0 0;
+  font-size: 0.9rem;
+  color: var(--rd-muted);
+}
+
+/* ===== Menu heading ===== */
+.rd-menu-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 0 0 16px;
+}
+
+.rd-menu-head h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--rd-ink);
+}
+
+.rd-menu-head span {
+  font-size: 0.9rem;
+  color: var(--rd-muted);
 }
 
 /* ===== Food Items List ===== */
 .food-items-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr));
+  gap: 16px;
 }
 
 /* Each food item row */
 .food-item-row {
   display: flex;
   align-items: center;
-  background-color: #fff;
-  border-radius: 10px;
-  padding: 12px 15px;
-  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
   gap: 15px;
-  transition: transform 0.2s;
 }
 
-.food-item-row:hover {
-  transform: translateY(-3px);
+.rd-item {
+  background-color: #fff;
+  border: 1px solid var(--rd-line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  color: #213547;
+  box-shadow: 0 2px 8px rgba(17, 24, 39, 0.05);
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+
+.rd-item:hover {
+  transform: translateY(-2px);
+  border-color: var(--rd-orange-line);
+  box-shadow: 0 10px 24px rgba(255, 102, 0, 0.12);
 }
 
 /* Food image */
@@ -106,62 +218,217 @@
   color: #555;
 }
 
-/* Quantity buttons aligned on right */
-.quantity-controls {
+/* ===== Add / quantity ===== */
+/* Fixed-width slot so the row doesn't reflow when Add turns into the stepper */
+.rd-action {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 104px;
 }
 
-.quantity-controls button,
-.add-btn {
-  background-color: #ff6600;
+.rd-add {
+  min-width: 84px;
+  padding: 9px 22px;
+  border: 1.5px solid var(--rd-orange);
+  border-radius: 999px;
+  background-color: var(--rd-orange);
   color: #fff;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 5px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   cursor: pointer;
-  font-weight: bold;
+  box-shadow: 0 4px 10px rgba(255, 102, 0, 0.25);
+  transition: background-color 0.2s, border-color 0.2s, transform 0.15s;
 }
 
-.quantity-controls button:hover,
-.add-btn:hover {
-  background-color: #e55a00;
+.rd-add:hover {
+  background-color: var(--rd-orange-dark);
+  border-color: var(--rd-orange-dark);
 }
 
-/* Go to cart button */
-.go-to-cart-btn {
-  margin-top: 20px;
-  padding: 10px 20px;
-  background-color: #ff6600;
+.rd-add:active {
+  transform: scale(0.96);
+}
+
+.rd-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--rd-orange-line);
+  border-radius: 999px;
+  background-color: var(--rd-orange-tint);
+}
+
+.rd-stepper button {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--rd-orange);
+  border-radius: 50%;
+  background-color: var(--rd-orange);
   color: #fff;
-  border: none;
-  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
   cursor: pointer;
-  font-weight: bold;
-  float: right;
+  transition: background-color 0.2s, border-color 0.2s, transform 0.15s;
+}
+
+.rd-stepper button:hover {
+  background-color: var(--rd-orange-dark);
+  border-color: var(--rd-orange-dark);
+}
+
+.rd-stepper button:active {
+  transform: scale(0.92);
+}
+
+.rd-qty {
+  min-width: 28px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--rd-ink);
+}
+
+.rd-add:focus-visible,
+.rd-stepper button:focus-visible,
+.rd-cartbar-btn:focus-visible {
+  outline: 3px solid rgba(255, 102, 0, 0.4);
+  outline-offset: 2px;
+}
+
+/* ===== Loading / empty ===== */
+.rd-state {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 48px 0;
+  text-align: center;
+  color: var(--rd-muted);
+}
+
+/* ===== Floating cart bar ===== */
+.rd-cartbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 18px;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  padding: 0 16px;
+  pointer-events: none;
+}
+
+.rd-cartbar-btn {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  width: min(100%, 520px);
+  padding: 15px 22px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #ff6600, #ff8a3d);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 12px 28px rgba(255, 102, 0, 0.35);
+  animation: rd-rise 0.25s ease-out;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.rd-cartbar-btn:hover {
+  border-color: transparent;
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px rgba(255, 102, 0, 0.42);
+}
+
+.rd-cartbar-cta {
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+@keyframes rd-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive: while the floating bar is showing, leave room under the footer so the bar
+   never sits on top of the footer's last line when the page is scrolled to the end. */
+.app-container:has(.rd-cartbar) .app-footer {
+  padding-bottom: 120px;
 }
 
 /* ===== Responsive ===== */
 @media (max-width: 700px) {
+  .rd-hero {
+    padding: 22px 18px 18px;
+  }
+
   .food-item-row {
     flex-direction: column;
     align-items: flex-start;
   }
 
+  /* a fixed ratio keeps every stacked card the same height whatever the photo's shape */
   .food-item-row img {
     width: 100%;
     height: auto;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
   }
 
-  .quantity-controls {
-    margin-top: 10px;
-  }
-
-  .go-to-cart-btn {
-    float: none;
+  .rd-action {
     width: 100%;
+  }
+
+  .rd-add {
+    width: 100%;
+  }
+
+  .rd-stepper {
+    width: 100%;
+    justify-content: space-between;
   }
 }
 
+/* Responsive: touch screens get ~44px tap areas without changing how the controls look. */
+@media (pointer: coarse) {
+  .rd-add,
+  .rd-stepper button {
+    position: relative;
+  }
 
+  .rd-add::after {
+    content: "";
+    position: absolute;
+    inset: -4px 0;
+  }
+
+  .rd-stepper button::after {
+    content: "";
+    position: absolute;
+    inset: -7px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rd-item,
+  .rd-add,
+  .rd-stepper button,
+  .rd-cartbar-btn {
+    transition: none;
+    animation: none;
+  }
+}

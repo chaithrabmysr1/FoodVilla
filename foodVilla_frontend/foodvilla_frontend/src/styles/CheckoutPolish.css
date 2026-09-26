@@ -1,0 +1,401 @@
+/* Checkout polish — a visual layer on top of Checkout.css and Payment.css.
+   Those files are left exactly as they were: every rule below is scoped under
+   .co-page (the checkout review step) and wins on specificity, so no other page
+   or shared style is affected. The one standalone class is .co-notice, which is
+   new. Colours are explicit so the page reads the same in light and dark OS
+   themes. */
+
+.co-page {
+  max-width: 1040px;
+  margin-top: 32px;
+}
+
+/* ---- Title ---- */
+.co-page .co-title {
+  margin-bottom: 24px;
+  font-size: 1.85rem;
+  letter-spacing: -0.02em;
+}
+
+.co-page .co-title::after {
+  content: "";
+  display: block;
+  width: 48px;
+  height: 4px;
+  margin-top: 10px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #ff6600, #ff9a4d);
+}
+
+/* ---- Layout ---- */
+.co-page .co-layout {
+  gap: 24px;
+}
+
+.co-page .co-main {
+  gap: 20px;
+}
+
+@media (min-width: 801px) {
+  .co-page .co-layout {
+    grid-template-columns: minmax(0, 1fr) 344px;
+  }
+}
+
+@media (min-width: 801px) and (max-width: 1000px) {
+  .co-page .co-layout {
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 18px;
+  }
+}
+
+/* ---- Cards ---- */
+.co-page .co-card {
+  padding: 22px 24px;
+  border: 1px solid #eeeae6;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(20, 20, 20, 0.04), 0 10px 28px rgba(20, 20, 20, 0.06);
+}
+
+.co-page .co-card h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.08rem;
+  letter-spacing: -0.01em;
+}
+
+.co-page .co-card h3::before {
+  content: "";
+  flex-shrink: 0;
+  width: 4px;
+  height: 18px;
+  border-radius: 4px;
+  background-color: #ff6600;
+}
+
+.co-page .co-card-head {
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f3efeb;
+}
+
+/* ---- Saved address ---- */
+.co-page .co-address {
+  gap: 16px;
+  padding: 16px 18px;
+  border: 1px solid #ffe6d3;
+  border-radius: 12px;
+  background-color: #fffaf5;
+}
+
+.co-page .co-address-icon {
+  width: 44px;
+  height: 44px;
+  border: 1px solid #ffd9bd;
+  background-color: #fff;
+  box-shadow: 0 2px 6px rgba(255, 102, 0, 0.15);
+  font-size: 1.2rem;
+}
+
+.co-page .co-address-body .co-address-label {
+  margin-bottom: 4px;
+  font-size: 1.05rem;
+}
+
+.co-page .co-link-btn {
+  padding: 7px 16px;
+  border: 1px solid #ffd3b3;
+  border-radius: 999px;
+  background-color: #fff;
+  font-size: 0.85rem;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.co-page .co-link-btn:hover {
+  border-color: #ffb98a;
+  background-color: #fff3e9;
+}
+
+/* ---- Address form ---- */
+.co-page .co-field input {
+  padding: 11px 13px;
+  border-color: #e3e0dc;
+  border-radius: 10px;
+}
+
+.co-page .co-field input:focus {
+  border-color: #ff6600;
+  box-shadow: 0 0 0 4px rgba(255, 102, 0, 0.14);
+}
+
+.co-page .co-secondary-btn {
+  padding: 10px 20px;
+  border-radius: 999px;
+}
+
+/* ---- Items ---- */
+.co-page .co-item {
+  gap: 16px;
+  padding: 16px 0;
+}
+
+.co-page .co-item:first-child {
+  padding-top: 0;
+}
+
+.co-page .co-item:last-child {
+  padding-bottom: 0;
+}
+
+.co-page .co-item-img {
+  width: 76px;
+  height: 76px;
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+.co-page .co-item-name {
+  font-size: 0.98rem;
+}
+
+.co-page .co-item-meta {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background-color: #f6f3f0;
+  color: #6b6b6b;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.co-page .co-item-total {
+  font-size: 1.02rem;
+  font-weight: 700;
+}
+
+/* ---- Bill summary ---- */
+.co-page .co-summary {
+  top: 20px;
+  border-top: 3px solid #ff6600;
+}
+
+.co-page .co-summary h3 {
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f3efeb;
+}
+
+.co-page .pay-bill {
+  gap: 12px;
+}
+
+.co-page .co-bill-row {
+  font-size: 0.94rem;
+  color: #555;
+}
+
+.co-page .co-bill-row span:last-child {
+  color: #222;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.co-page .pay-bill .pay-discount span:last-child {
+  color: #1e7e34;
+}
+
+.co-page .pay-bill .pay-total {
+  margin-top: 6px;
+  padding: 14px 16px;
+  border: 0;
+  border-radius: 12px;
+  background-color: #fff5ec;
+  font-size: 1.05rem;
+  color: #222;
+}
+
+.co-page .pay-bill .pay-total span:last-child {
+  color: #ff6600;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+/* Bill still being calculated */
+.co-page .co-summary .co-muted {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+}
+
+.co-page .co-summary .co-muted::before {
+  content: "";
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #ffd3b3;
+  border-top-color: #ff6600;
+  border-radius: 50%;
+  animation: co-spin 0.8s linear infinite;
+}
+
+@keyframes co-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Message when the bill can't be shown */
+.co-page .pay-error {
+  position: relative;
+  margin: 0;
+  padding: 12px 14px 12px 46px;
+  border: 1px solid #ffd4cf;
+  border-radius: 12px;
+  background-color: #fff1ef;
+  color: #b3261e;
+  font-size: 0.86rem;
+}
+
+.co-page .pay-error::before {
+  content: "!";
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: #d93025;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 800;
+  line-height: 20px;
+  text-align: center;
+}
+
+.co-page .pay-error a {
+  color: #b3261e;
+  text-decoration: underline;
+}
+
+/* ---- Proceed to Payment ---- */
+.co-page .co-place-btn {
+  margin-top: 20px;
+  padding: 15px 20px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ff7a1a, #ff5a00);
+  box-shadow: 0 8px 20px rgba(255, 102, 0, 0.3);
+  font-size: 1.02rem;
+  letter-spacing: 0.01em;
+  transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+}
+
+.co-page .co-place-btn::after {
+  content: "\2192";
+  display: inline-block;
+  margin-left: 10px;
+  transition: transform 0.15s;
+}
+
+.co-page .co-place-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ff7a1a, #ff5a00);
+  box-shadow: 0 12px 26px rgba(255, 102, 0, 0.38);
+  filter: brightness(0.97);
+  transform: translateY(-1px);
+}
+
+.co-page .co-place-btn:hover:not(:disabled)::after {
+  transform: translateX(3px);
+}
+
+.co-page .co-place-btn:active:not(:disabled) {
+  transform: none;
+}
+
+.co-page .co-place-btn:focus-visible {
+  outline: 3px solid rgba(255, 102, 0, 0.35);
+  outline-offset: 2px;
+}
+
+.co-page .co-place-btn:disabled {
+  opacity: 1;
+  background: #ececec;
+  box-shadow: none;
+  color: #a0a0a0;
+}
+
+.co-page .co-place-btn:disabled::after {
+  display: none;
+}
+
+/* ---- Cart-updated notice (items dropped when the cart was repaired) ---- */
+.co-notice {
+  padding: 14px 16px;
+  border: 1px solid #ffe2a3;
+  border-radius: 12px;
+  background-color: #fff8e6;
+  color: #6e4b00;
+  font-family: "Segoe UI", Arial, sans-serif;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.co-notice p {
+  margin: 0;
+}
+
+.co-notice .co-notice-title {
+  margin-bottom: 2px;
+  font-weight: 700;
+  color: #5c3d00;
+}
+
+.co-notice ul {
+  margin: 8px 0 0;
+  padding-left: 20px;
+}
+
+.cart-page .co-notice {
+  max-width: 560px;
+  margin: 16px auto;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 800px) {
+  .co-page {
+    margin-top: 24px;
+  }
+
+  .co-page .co-card {
+    padding: 18px;
+  }
+}
+
+@media (max-width: 520px) {
+  .co-page .co-title {
+    font-size: 1.55rem;
+  }
+
+  .co-page .co-item-img {
+    width: 60px;
+    height: 60px;
+  }
+
+  .co-page .co-address {
+    padding: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .co-page .co-summary .co-muted::before {
+    animation: none;
+  }
+
+  .co-page .co-place-btn,
+  .co-page .co-place-btn::after {
+    transition: none;
+  }
+}

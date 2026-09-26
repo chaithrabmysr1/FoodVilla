@@ -353,3 +353,337 @@
     grid-area: total;
   }
 }
+
+/* =====================================================================
+   Visual polish — additive only. Nothing above this line was edited and
+   Cart.jsx is unchanged; these rules sit later in the file at equal
+   specificity, so they refine the look without touching markup, layout
+   (grid columns / breakpoints) or any shared stylesheet. Same palette as
+   the home page and navbar (#ff6600 accent, #1f2430 ink).
+   ===================================================================== */
+
+.ct-page {
+  --ct-accent: #ff6600;
+  --ct-accent-dark: #e65c00;
+  --ct-accent-soft: #fff3e8;
+  --ct-ink: #1f2430;
+  --ct-muted: #6b7280;
+  --ct-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  display: flow-root;          /* stops the empty card's top margin collapsing out, so the tint below reaches the navbar */
+  position: relative;
+  isolation: isolate;          /* keeps the tint below inside this page */
+  color: var(--ct-ink);
+}
+
+/* Warm full-width backdrop behind the page (like the home page). The
+   box-shadow spread + clip-path make it bleed to the viewport edges without
+   adding horizontal scroll. */
+.ct-page::before {
+  content: "";
+  position: absolute;
+  inset: -24px 0 -48px;
+  z-index: -1;
+  background-color: #fdf7f1;
+  box-shadow: 0 0 0 100vmax #fdf7f1;
+  clip-path: inset(0 -100vmax);
+}
+
+.ct-title {
+  align-items: center;
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ct-ink);
+}
+
+.ct-count {
+  padding: 3px 12px;
+  border: 1px solid #ffd9bf;
+  border-radius: 999px;
+  background-color: var(--ct-accent-soft);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--ct-accent-dark);
+}
+
+/* Cards */
+.ct-card {
+  padding: 22px 24px;
+  border-color: #f1e9e1;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(31, 36, 48, 0.05), 0 8px 24px rgba(31, 36, 48, 0.07);
+  animation: ct-rise 0.45s var(--ct-ease) both;
+}
+
+.ct-summary {
+  overflow: hidden;            /* clips the accent bar to the rounded corners */
+  animation-delay: 0.08s;
+}
+
+@keyframes ct-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.ct-card h3 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--ct-ink);
+}
+
+/* Accent bar across the top of the bill card — same gradient as the navbar rule */
+.ct-summary::before {
+  content: "";
+  display: block;
+  height: 4px;
+  margin: -22px -24px 18px;
+  background: linear-gradient(90deg, #ff6600, #ffb020);
+}
+
+/* Items */
+.ct-item {
+  padding: 18px 0;
+  border-top-color: #f3f4f6;
+}
+
+.ct-item-img {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(31, 36, 48, 0.14);
+  transition: transform 0.35s var(--ct-ease);
+}
+
+.ct-item:hover .ct-item-img {
+  transform: scale(1.05);
+}
+
+.ct-item-name {
+  color: var(--ct-ink);
+}
+
+.ct-item-price {
+  font-size: 0.82rem;
+  color: var(--ct-muted);
+}
+
+.ct-item-price::after {
+  content: " each";
+}
+
+.ct-item-total {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--ct-ink);
+}
+
+/* Quantity stepper: peach pill with round orange +/- buttons */
+.ct-stepper {
+  padding: 2px;
+  border-color: #ffd9bf;
+  border-radius: 999px;
+  background-color: var(--ct-accent-soft);
+}
+
+.ct-stepper button {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: transparent;
+  color: var(--ct-accent);
+  transition: background-color 0.2s, box-shadow 0.2s, transform 0.15s;
+}
+
+.ct-stepper button:hover:not(:disabled) {
+  background-color: #fff;
+  box-shadow: 0 1px 4px rgba(255, 102, 0, 0.25);
+}
+
+.ct-stepper button:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+.ct-stepper button:disabled {
+  color: #d1a98c;
+}
+
+.ct-stepper span {
+  min-width: 30px;
+  color: var(--ct-ink);
+}
+
+/* Remove: the emoji is hidden and replaced by a crisp bin icon drawn with a
+   mask, so it looks the same on every OS and takes the button's colour. */
+.ct-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 0;
+  color: #9ca3af;
+  opacity: 1;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.ct-remove::before {
+  content: "";
+  width: 18px;
+  height: 18px;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 6 5 6 21 6'/%3E%3Cpath d='M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6'/%3E%3Cpath d='M10 11v6M14 11v6'/%3E%3Cpath d='M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 6 5 6 21 6'/%3E%3Cpath d='M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6'/%3E%3Cpath d='M10 11v6M14 11v6'/%3E%3Cpath d='M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+.ct-remove:hover {
+  background-color: #fdeceb;
+  color: #d93025;
+}
+
+/* Keyboard focus: a slim orange ring instead of the browser's chunky blue one,
+   and no ring on plain mouse clicks. */
+.ct-page button:focus-visible {
+  outline: 2px solid var(--ct-accent);
+  outline-offset: 2px;
+}
+
+.ct-page button:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Bill details */
+.ct-bill-row {
+  align-items: baseline;
+  padding: 2px 0;
+  font-size: 0.95rem;
+}
+
+.ct-bill-row span:first-child {
+  font-weight: 500;
+  color: var(--ct-muted);
+}
+
+.ct-bill-row span:last-child {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--ct-ink);
+}
+
+/* Delivery/tax note becomes a soft info callout instead of a dashed rule */
+.ct-bill-note {
+  position: relative;
+  margin: 14px 0 18px;
+  padding: 10px 12px 10px 38px;
+  border-top: none;
+  border-radius: 10px;
+  background-color: var(--ct-accent-soft);
+  color: #8a5a35;
+}
+
+.ct-bill-note::before {
+  content: "i";
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background-color: var(--ct-accent);
+  font: italic 700 11px/17px Georgia, "Times New Roman", serif;
+  text-align: center;
+  color: #fff;
+}
+
+/* Buttons — orange everywhere (the empty-state button was green), same glow
+   and lift as the navbar call-to-action. */
+.ct-btn {
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-size: 1rem;
+  transition: background-color 0.2s, box-shadow 0.2s, transform 0.2s var(--ct-ease);
+}
+
+.ct-btn.primary,
+.ct-summary .ct-btn.primary {
+  background-color: var(--ct-accent);
+  box-shadow: 0 6px 16px rgba(255, 102, 0, 0.3);
+}
+
+.ct-btn.primary:hover,
+.ct-summary .ct-btn.primary:hover {
+  background-color: var(--ct-accent-dark);
+  box-shadow: 0 8px 20px rgba(255, 102, 0, 0.38);
+  transform: translateY(-1px);
+}
+
+.ct-btn.primary:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 8px rgba(255, 102, 0, 0.3);
+}
+
+.ct-btn.primary::after {
+  content: "\2192";
+  display: inline-block;
+  margin-left: 8px;
+  transition: transform 0.2s var(--ct-ease);
+}
+
+.ct-btn.primary:hover::after {
+  transform: translateX(4px);
+}
+
+.ct-btn.secondary {
+  border-width: 1.5px;
+}
+
+.ct-btn.secondary:hover {
+  transform: translateY(-1px);
+}
+
+/* Empty state */
+.ct-empty {
+  margin-top: 36px;            /* 24px page margin + 36px = the original 60px offset */
+  border-color: #f1e9e1;
+  border-radius: 20px;
+  box-shadow: 0 1px 2px rgba(31, 36, 48, 0.05), 0 12px 32px rgba(31, 36, 48, 0.08);
+  animation: ct-rise 0.45s var(--ct-ease) both;
+}
+
+.ct-empty-icon {
+  box-shadow: 0 0 0 8px rgba(255, 102, 0, 0.08);
+}
+
+.ct-empty h2 {
+  font-weight: 800;
+  color: var(--ct-ink);
+}
+
+.ct-empty p {
+  color: var(--ct-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ct-card,
+  .ct-empty {
+    animation: none;
+  }
+
+  .ct-item-img,
+  .ct-btn,
+  .ct-btn.primary::after,
+  .ct-stepper button {
+    transition: none;
+  }
+
+  .ct-item:hover .ct-item-img,
+  .ct-btn.primary:hover,
+  .ct-btn.primary:hover::after,
+  .ct-btn.secondary:hover {
+    transform: none;
+  }
+}

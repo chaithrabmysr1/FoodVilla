@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getRestaurantById } from "../services/restaurantApi";
 import { getCatalogueByRestaurant } from "../services/catalogueApi";
+import { money } from "../utils/format";
 import "../styles/RestaurantDetails.css";
 
 const RestaurantDetails = () => {
@@ -93,33 +94,63 @@ const RestaurantDetails = () => {
     0
   );
 
-  if (!restaurant) return <p>Loading restaurant details...</p>;
+  if (!restaurant) {
+    return (
+      <div className="restaurant-details-page">
+        <p className="rd-state">Loading restaurant details...</p>
+      </div>
+    );
+  }
+
+  const cuisines = Array.isArray(restaurant.cuisines) ? restaurant.cuisines : [];
 
   return (
     <div className="restaurant-details-page">
-      <div className="restaurant-header">
-        <h1>{restaurant.name || "Restaurant Name"}</h1>
-        <p className={`restaurant-status ${restaurant.isOpen ? "open" : "closed"}`}>
-          {restaurant.isOpen ? "Open" : "Closed"}
+      <header className="rd-hero">
+        <div className="rd-hero-top">
+          <h1 className="rd-name">{restaurant.name || "Restaurant Name"}</h1>
+          <span className={`rd-status ${restaurant.isOpen ? "open" : "closed"}`}>
+            {restaurant.isOpen ? "Open" : "Closed"}
+          </span>
+        </div>
+
+        <div className="rd-facts">
+          <span className="rd-rating">★ {restaurant.rating || "N/A"}</span>
+          <span className="rd-fact">
+            {restaurant.costForTwo ? money(restaurant.costForTwo) : "₹-"} for two
+          </span>
+        </div>
+
+        {cuisines.length > 0 ? (
+          <ul className="rd-cuisines">
+            {cuisines.map((cuisine) => (
+              <li key={cuisine}>{cuisine}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="rd-muted">Cuisines not available</p>
+        )}
+
+        <p className="rd-address">
+          <span aria-hidden="true">📍</span> {restaurant.address || "Address not available"}
         </p>
-        <div className="restaurant-meta">
-          <span>⭐ {restaurant.rating || "N/A"}</span>
-          <span>• ₹{restaurant.costForTwo || "-"} for two</span>
+      </header>
+
+      {foodItems.length > 0 && (
+        <div className="rd-menu-head">
+          <h2>Menu</h2>
+          <span>
+            {foodItems.length} item{foodItems.length > 1 ? "s" : ""}
+          </span>
         </div>
-        <div className="restaurant-cuisines">
-          {restaurant.cuisines?.join(", ") || "Cuisines not available"}
-        </div>
-        <div className="restaurant-address">
-          {restaurant.address || "Address not available"}
-        </div>
-      </div>
+      )}
 
       <div className="food-items-list">
         {foodItems.length === 0 ? (
-          <p>No food items available.</p>
+          <p className="rd-state">No food items available.</p>
         ) : (
           foodItems.map((item) => (
-            <div className="food-item-row" key={item.id}>
+            <div className="food-item-row rd-item" key={item.id}>
               <img src={item.imageUrl || "/default-food.png"} alt={item.itemName || "Food"} />
               <div className="food-text">
                 <h4>{item.itemName || "Food Name"}</h4>
@@ -127,44 +158,43 @@ const RestaurantDetails = () => {
                 <p>₹ {item.price || "-"}</p>
                 <p>{item.isVeg ? "🌱 Veg" : "🍗 Non-Veg"}</p>
               </div>
-              {item.quantity > 0 ? (
-                <div className="quantity-controls">
-                  <button onClick={() => handleRemove(item.id)}>-</button>
-                  <span className="quantity">{item.quantity}</span>
-                  <button onClick={() => handleAdd(item.id)}>+</button>
-                </div>
-              ) : (
-                <button className="add-btn" onClick={() => handleAdd(item.id)}>
-                  Add
-                </button>
-              )}
+              <div className="rd-action">
+                {item.quantity > 0 ? (
+                  <div className="rd-stepper" role="group" aria-label="Quantity">
+                    <button type="button" aria-label="Remove one" onClick={() => handleRemove(item.id)}>
+                      −
+                    </button>
+                    <span className="rd-qty" aria-live="polite">
+                      {item.quantity}
+                    </span>
+                    <button type="button" aria-label="Add one" onClick={() => handleAdd(item.id)}>
+                      +
+                    </button>
+                  </div>
+                ) : (
+                  <button type="button" className="rd-add" onClick={() => handleAdd(item.id)}>
+                    Add
+                  </button>
+                )}
+              </div>
             </div>
           ))
         )}
       </div>
 
       {totalItems > 0 && (
-        <button
-          className="go-to-cart-btn"
-          onClick={goToCart}
-          style={{
-            position: "fixed",
-            bottom: "20px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 1000,
-            padding: "12px 20px",
-            fontSize: "16px",
-            borderRadius: "8px",
-            backgroundColor: "#ff6600",
-            color: "#fff",
-            border: "none",
-            cursor: "pointer",
-            boxShadow: "0px 4px 6px rgba(0,0,0,0.1)",
-          }}
-        >
-          🛒 {totalItems} item{totalItems > 1 ? "s" : ""} | ₹{totalPrice} Go to Cart
-        </button>
+        <div className="rd-cartbar">
+          <button type="button" className="rd-cartbar-btn" onClick={goToCart}>
+            <span className="rd-cartbar-info">
+              <strong>
+                {totalItems} item{totalItems > 1 ? "s" : ""}
+              </strong>
+              <span aria-hidden="true"> | </span>
+              {money(totalPrice)}
+            </span>
+            <span className="rd-cartbar-cta">Go to Cart →</span>
+          </button>
+        </div>
       )}
     </div>
   );

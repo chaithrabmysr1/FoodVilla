@@ -1,0 +1,674 @@
+/* Order confirmation polish — a look-only layer on top of OrderConfirmation.css,
+   Payment.css and OrderStatusTimeline.css. Those files are left exactly as they
+   were: every rule below is scoped under .oc-page (the order confirmed / order
+   details page) and wins on specificity, so no other page or shared style is
+   affected — the shared timeline only changes while it sits inside .oc-page.
+   Markup and behaviour are untouched. Colours are explicit so the page reads the
+   same in light and dark OS themes (the app's global `button` rule would
+   otherwise leak in, so buttons set every state themselves). */
+
+.oc-page {
+  max-width: 1000px;
+  margin-top: 32px;
+  color: #1f2933;
+}
+
+/* ======================================================================
+   Confirmation hero
+   ====================================================================== */
+.oc-page .oc-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 38px 24px 30px;
+  border: 1px solid #cfe9d8;
+  border-radius: 20px;
+  background:
+    radial-gradient(560px 230px at 50% -50px, rgba(40, 167, 69, 0.2), rgba(40, 167, 69, 0) 70%),
+    linear-gradient(180deg, #f1faf4 0%, #ffffff 75%);
+  box-shadow: 0 10px 30px rgba(30, 126, 52, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.oc-page .oc-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: linear-gradient(90deg, #1e7e34, #4cd977, #1e7e34);
+}
+
+.oc-page .oc-hero h2 {
+  margin: 22px 0 4px;
+  font-size: clamp(1.6rem, 3.6vw, 2.1rem);
+  letter-spacing: -0.02em;
+  color: #1e7e34;
+}
+
+/* Check mark: a soft resting halo plus one ripple that plays twice. */
+.oc-page .oc-check {
+  position: relative;
+  width: 84px;
+  height: 84px;
+}
+
+.oc-page .oc-check::before {
+  content: "";
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  background: rgba(40, 167, 69, 0.12);
+}
+
+.oc-page .oc-check::after {
+  content: "";
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  border: 2px solid rgba(40, 167, 69, 0.45);
+  opacity: 0;
+  animation: ocp-ripple 1.8s ease-out 0.5s 2;
+}
+
+.oc-page .oc-check svg {
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 6px 12px rgba(40, 167, 69, 0.35));
+}
+
+@keyframes ocp-ripple {
+  0% {
+    transform: scale(0.75);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.45);
+    opacity: 0;
+  }
+}
+
+/* "Payment Successful" / "Order Confirmed" — side by side on wide screens. */
+.oc-page .pay-checks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  max-width: 640px;
+  margin-top: 22px;
+}
+
+.oc-page .pay-checks li {
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-color: #cfe9d8;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05);
+}
+
+.oc-page .pay-checks svg {
+  margin-top: 1px;
+  font-size: 1.6rem;
+}
+
+.oc-page .pay-checks strong {
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+}
+
+.oc-page .pay-checks small {
+  margin-top: 2px;
+  color: #5b6770;
+}
+
+/* The receipt: order facts in a divided two-column sheet. */
+.oc-page .pay-facts {
+  box-sizing: border-box;
+  gap: 0 28px;
+  max-width: 640px;
+  margin-top: 14px;
+  padding: 4px 22px;
+  border-color: #cfe9d8;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05);
+}
+
+.oc-page .pay-facts > div {
+  min-width: 0;
+  padding: 13px 0;
+  border-top: 1px dashed #d9eadf;
+}
+
+.oc-page .pay-facts > div:nth-child(-n + 2) {
+  border-top: none;
+}
+
+.oc-page .pay-facts dt {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  color: #6b7a72;
+}
+
+.oc-page .pay-facts dd {
+  margin-top: 4px;
+  font-size: 1rem;
+  color: #1f2933;
+}
+
+/* Amount paid is the 3rd fact — give it the emphasis. */
+.oc-page .pay-facts > div:nth-child(3) dd {
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #1e7e34;
+}
+
+.oc-page .pay-mono {
+  width: fit-content;
+  max-width: 100%;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background-color: #eff4f1;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  color: #2b3a33;
+}
+
+.oc-page .pay-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 11px 3px 9px;
+  background-color: #e3f6ea;
+}
+
+.oc-page .pay-status-chip::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #28a745;
+}
+
+.oc-page .pay-hero-actions {
+  gap: 12px;
+  margin-top: 24px;
+}
+
+/* ======================================================================
+   Plain header (order opened from order history)
+   ====================================================================== */
+.oc-page .oc-header {
+  padding: 20px 24px;
+  border: 1px solid #f0e9e2;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fffaf5 0%, #ffffff 100%);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 6px 18px rgba(16, 24, 40, 0.05);
+}
+
+.oc-page .oc-header h2 {
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+  color: #1f2933;
+}
+
+.oc-page .oc-header p {
+  margin-top: 4px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+/* ======================================================================
+   Cards
+   ====================================================================== */
+.oc-page .oc-layout {
+  gap: 24px;
+}
+
+.oc-page .oc-col {
+  gap: 18px;
+}
+
+.oc-page .oc-card {
+  padding: 20px 22px 22px;
+  border: 1px solid #efebe6;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 6px 18px rgba(16, 24, 40, 0.06);
+}
+
+.oc-page .oc-card-head {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f3efea;
+}
+
+.oc-page .oc-card-head h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+  color: #1f2933;
+}
+
+.oc-page .oc-card-head h3::before {
+  content: "";
+  width: 4px;
+  height: 16px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #ff9a4d, #ff6600);
+}
+
+/* Status chips get a leading dot. */
+.oc-page .oc-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px 5px 10px;
+  border: 1px solid transparent;
+}
+
+.oc-page .oc-status::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+.oc-page .oc-status.done {
+  border-color: #cdebd6;
+}
+
+.oc-page .oc-status.failed {
+  border-color: #f6cbc7;
+}
+
+.oc-page .oc-status:not(.done):not(.failed):not(.pay-muted-chip) {
+  border-color: #ffdcc2;
+}
+
+/* ---- Timeline: vertical stepper with a connecting rail ---- */
+.oc-page .oc-card .order-timeline {
+  gap: 0;
+}
+
+.oc-page .timeline-step {
+  position: relative;
+  gap: 14px;
+  min-height: 40px;
+  padding: 8px 0;
+}
+
+/* Rail from this step's icon down to the next one. */
+.oc-page .timeline-step::after {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: calc(50% + 13px);
+  bottom: calc(-50% + 13px);
+  width: 2px;
+  border-radius: 2px;
+  background-color: #e6e1db;
+}
+
+.oc-page .timeline-step:last-child::after {
+  display: none;
+}
+
+.oc-page .timeline-step.completed::after {
+  background-color: #28a745;
+}
+
+.oc-page .timeline-icon {
+  box-sizing: border-box;
+  flex: 0 0 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid #dcd7d1;
+  border-radius: 50%;
+  background-color: #fff;
+  font-size: 0;
+  line-height: 1;
+}
+
+.oc-page .timeline-step.completed .timeline-icon {
+  border-color: #28a745;
+  background-color: #28a745;
+  color: #fff;
+  font-size: 0.72rem;
+}
+
+.oc-page .timeline-step.current .timeline-icon {
+  border-color: #ff6600;
+  background-color: #fff;
+  color: #ff6600;
+  font-size: 0.6rem;
+  box-shadow: 0 0 0 4px rgba(255, 102, 0, 0.16);
+}
+
+.oc-page .timeline-step.completed {
+  color: #1e7e34;
+}
+
+.oc-page .timeline-step.current {
+  color: #e65c00;
+}
+
+.oc-page .timeline-step.upcoming {
+  color: #747b84;
+}
+
+.oc-page .terminal-banner {
+  border-radius: 12px;
+}
+
+/* ---- Payment card ---- */
+.oc-page .pay-rows > div {
+  padding: 10px 0;
+  border-top: 1px solid #f3efea;
+  font-size: 0.92rem;
+}
+
+.oc-page .pay-rows > div:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+.oc-page .pay-rows dt {
+  color: #6b7280;
+}
+
+.oc-page .pay-rows dd {
+  color: #1f2933;
+  font-weight: 700;
+}
+
+.oc-page .pay-hold {
+  padding: 12px 14px;
+  border: 1px solid #ffe3cd;
+  border-radius: 12px;
+  background-color: #fff8f1;
+  color: #5b4636;
+}
+
+.oc-page .pay-muted-text {
+  color: #6b7280;
+}
+
+/* ---- Items ---- */
+.oc-page .oc-item {
+  padding: 14px 0;
+  border-top-color: #f3efea;
+}
+
+/* Dish photo (the markup for it was added in OrderDetails.jsx). */
+.oc-page .oc-item {
+  align-items: center;
+}
+
+.oc-page .oc-item-img {
+  display: block;
+  flex: 0 0 auto;
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  object-fit: cover;
+  background-color: #f3f3f3;
+  box-shadow: 0 0 0 1px rgba(16, 24, 40, 0.06), 0 2px 6px rgba(16, 24, 40, 0.08);
+}
+
+.oc-page .oc-item-text {
+  flex: 1 1 auto;
+}
+
+.oc-page .oc-item-name {
+  color: #1f2933;
+}
+
+.oc-page .oc-item-meta {
+  margin-top: 5px;
+  color: #6b7280;
+}
+
+.oc-page .oc-item-total {
+  font-weight: 700;
+  color: #1f2933;
+}
+
+/* ---- Address ---- */
+.oc-page .oc-address {
+  gap: 16px;
+}
+
+.oc-page .oc-address-icon {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, #fff3e9, #ffe2c9);
+  box-shadow: inset 0 0 0 1px #ffdcc2;
+}
+
+.oc-page .oc-address p {
+  color: #4a5560;
+}
+
+.oc-page .oc-address .oc-address-name {
+  color: #1f2933;
+}
+
+/* ---- Bill ---- */
+.oc-page .oc-bill div {
+  padding: 6px 0;
+  font-size: 0.93rem;
+  color: #4a5560;
+}
+
+.oc-page .oc-bill .oc-bill-discount {
+  color: #1e7e34;
+}
+
+.oc-page .oc-bill .oc-bill-total {
+  margin: 12px 0 0;
+  padding: 13px 14px;
+  border-top: none;
+  border-radius: 12px;
+  background-color: #fff6ee;
+  box-shadow: inset 0 0 0 1px #ffe3cd;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #1f2933;
+}
+
+/* ======================================================================
+   Buttons — every state explicit (global `button` styles must not leak in)
+   ====================================================================== */
+.oc-page .oc-actions {
+  gap: 12px;
+}
+
+.oc-page .oc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 12px 22px;
+  border: 1.5px solid transparent;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s,
+    transform 0.2s;
+}
+
+.oc-page .oc-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.oc-page .oc-btn:active:not(:disabled) {
+  transform: none;
+}
+
+.oc-page .oc-btn:focus,
+.oc-page .oc-btn:focus-visible {
+  outline: none;
+}
+
+.oc-page .oc-btn:focus-visible {
+  box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(40, 167, 69, 0.55);
+}
+
+.oc-page .oc-btn.primary {
+  background-color: #28a745;
+  border-color: #28a745;
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(40, 167, 69, 0.28);
+}
+
+.oc-page .oc-btn.primary:hover:not(:disabled) {
+  background-color: #1f8f3a;
+  border-color: #1f8f3a;
+  box-shadow: 0 8px 18px rgba(40, 167, 69, 0.36);
+}
+
+.oc-page .oc-btn.secondary {
+  background-color: #fff;
+  border-color: #b9dfc4;
+  color: #1e7e34;
+}
+
+.oc-page .oc-btn.secondary:hover:not(:disabled) {
+  background-color: #eaf7ee;
+  border-color: #28a745;
+  color: #1e7e34;
+}
+
+.oc-page .oc-btn.danger {
+  background-color: #fff;
+  border-color: #f2b8b3;
+  color: #c62828;
+}
+
+.oc-page .oc-btn.danger:hover:not(:disabled) {
+  background-color: #fff1f0;
+  border-color: #e5544b;
+  color: #b71c1c;
+}
+
+.oc-page .oc-btn.danger:focus-visible {
+  box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(229, 84, 75, 0.55);
+}
+
+.oc-page .oc-btn:disabled {
+  box-shadow: none;
+}
+
+/* ======================================================================
+   Motion (skipped entirely for reduced-motion users)
+   ====================================================================== */
+@keyframes ocp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes ocp-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 4px rgba(255, 102, 0, 0.16);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgba(255, 102, 0, 0.06);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .oc-page .oc-hero,
+  .oc-page .oc-header {
+    animation: ocp-rise 0.45s ease-out both;
+  }
+
+  .oc-page .oc-col > .oc-card {
+    animation: ocp-rise 0.45s ease-out both;
+  }
+
+  .oc-page .oc-col > .oc-card:nth-child(2) {
+    animation-delay: 0.06s;
+  }
+
+  .oc-page .oc-col > .oc-card:nth-child(3) {
+    animation-delay: 0.12s;
+  }
+
+  .oc-page .oc-col > .oc-card:nth-child(4) {
+    animation-delay: 0.18s;
+  }
+
+  .oc-page .timeline-step.current .timeline-icon {
+    animation: ocp-pulse 2s ease-in-out infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oc-page .oc-check::after {
+    animation: none;
+  }
+}
+
+/* ======================================================================
+   Responsive
+   ====================================================================== */
+@media (min-width: 801px) {
+  /* Keep the bill and actions in view while the timeline is long. */
+  .oc-page .oc-layout > aside.oc-col {
+    position: sticky;
+    top: 112px;
+  }
+}
+
+@media (max-width: 640px) {
+  .oc-page .pay-checks {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .oc-page .oc-hero {
+    padding: 32px 16px 24px;
+  }
+
+  .oc-page .pay-facts {
+    grid-template-columns: 1fr;
+    padding: 4px 18px;
+  }
+
+  .oc-page .pay-facts > div:nth-child(2) {
+    border-top: 1px dashed #d9eadf;
+  }
+
+  .oc-page .pay-hero-actions .oc-btn {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .oc-page .oc-header {
+    padding: 16px 18px;
+  }
+
+  .oc-page .oc-card {
+    padding: 18px 16px 20px;
+  }
+
+  .oc-page .oc-item-img {
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
+  }
+}

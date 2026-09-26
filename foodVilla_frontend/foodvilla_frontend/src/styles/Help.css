@@ -31,3 +31,292 @@
   color: #555;
   margin-left: 10px;
 }
+
+
+/* ==========================================================================
+   Help page redesign (hp-*)
+   The .help-page / .faq-* rules above are no longer used by Help.jsx.
+   ========================================================================== */
+.hp-page {
+  box-sizing: border-box;
+  /* header height comes from --nb-h; dvh follows the mobile browser's collapsing URL bar */
+  min-height: calc(100vh - var(--nb-h, 112px));
+  min-height: calc(100dvh - var(--nb-h, 112px));
+  padding: 40px 16px 56px;
+  color-scheme: light;
+  color: #2b2b2b;
+  font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  background:
+    radial-gradient(circle at 10% 8%, rgba(255, 102, 0, 0.1), transparent 40%),
+    radial-gradient(circle at 92% 90%, rgba(76, 175, 80, 0.09), transparent 40%),
+    #fff7f2;
+}
+
+.hp-wrap {
+  display: grid;
+  gap: 20px;
+  max-width: 820px;
+  margin: 0 auto;
+}
+
+/* ---- hero ---- */
+.hp-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 36px 24px 34px;
+  border-radius: 22px;
+  color: #fff;
+  text-align: center;
+  background: linear-gradient(155deg, #ff8a2a 0%, #ff6600 55%, #e04d00 100%);
+  box-shadow: 0 18px 44px rgba(224, 77, 0, 0.25);
+}
+
+.hp-hero::before,
+.hp-hero::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.hp-hero::before {
+  width: 220px;
+  height: 220px;
+  top: -90px;
+  right: -60px;
+}
+
+.hp-hero::after {
+  width: 150px;
+  height: 150px;
+  bottom: -60px;
+  left: -40px;
+}
+
+.hp-hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.hp-hero-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.2);
+  font-size: 1.4rem;
+}
+
+.hp-title {
+  margin: 0 0 6px;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.hp-sub {
+  margin: 0;
+  font-size: 1rem;
+  opacity: 0.92;
+}
+
+/* ---- FAQ accordion ---- */
+.hp-faq {
+  display: grid;
+  gap: 12px;
+}
+
+.hp-item {
+  background: #fff;
+  border: 1.5px solid #f3e6dc;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(120, 50, 0, 0.05);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hp-item:hover {
+  border-color: #ffd0ad;
+}
+
+.hp-item[open] {
+  border-color: #ffb98a;
+  box-shadow: 0 10px 26px rgba(120, 50, 0, 0.1);
+}
+
+.hp-q {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 16px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.hp-q::-webkit-details-marker {
+  display: none;
+}
+
+.hp-q:focus-visible {
+  outline: 2px solid #ff6600;
+  outline-offset: 2px;
+}
+
+.hp-q-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #fff1e6;
+  color: #ff6600;
+  font-size: 1rem;
+}
+
+.hp-q-text {
+  flex: 1;
+  min-width: 0;
+  color: #222;
+  font-size: 1.02rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.hp-chevron {
+  flex-shrink: 0;
+  color: #a39a92;
+  font-size: 0.85rem;
+  transition: transform 0.25s ease, color 0.2s ease;
+}
+
+.hp-item[open] .hp-chevron {
+  transform: rotate(180deg);
+  color: #ff6600;
+}
+
+.hp-a {
+  margin: 0;
+  padding: 0 24px 20px 76px;
+  color: #555;
+  font-size: 0.95rem;
+  line-height: 1.65;
+  animation: hp-reveal 0.25s ease;
+}
+
+@keyframes hp-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---- contact card ---- */
+.hp-contact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  padding: 24px 28px;
+  background: #fff;
+  border: 1.5px solid #f3e6dc;
+  border-radius: 18px;
+  box-shadow: 0 2px 8px rgba(120, 50, 0, 0.05);
+}
+
+.hp-contact-text h2 {
+  margin: 0 0 4px;
+  color: #1f1f1f;
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.hp-contact-text p {
+  margin: 0;
+  color: #6b6b6b;
+  font-size: 0.93rem;
+}
+
+.hp-contact-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff7a1a, #ff6600);
+  box-shadow: 0 8px 20px rgba(255, 102, 0, 0.3);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.hp-contact-btn:hover {
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgba(255, 102, 0, 0.4);
+}
+
+.hp-contact-btn:focus-visible {
+  outline: 3px solid rgba(255, 102, 0, 0.45);
+  outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+  .hp-page {
+    padding: 24px 14px 40px;
+  }
+
+  .hp-hero {
+    padding: 28px 18px;
+  }
+
+  .hp-title {
+    font-size: 1.6rem;
+  }
+
+  .hp-q {
+    gap: 12px;
+    padding: 14px 16px;
+  }
+
+  .hp-a {
+    padding: 0 18px 18px;
+  }
+
+  .hp-contact {
+    padding: 20px;
+  }
+
+  .hp-contact-btn {
+    justify-content: center;
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hp-a {
+    animation: none;
+  }
+
+  .hp-chevron,
+  .hp-contact-btn {
+    transition: none;
+  }
+
+  .hp-contact-btn:hover {
+    transform: none;
+  }
+}

@@ -2,17 +2,21 @@ import React, { useEffect, useState } from "react";
 import {
   FaSearch,
   FaQuestionCircle,
-  FaUserPlus,
   FaShoppingCart,
   FaReceipt,
   FaSignOutAlt,
   FaSignInAlt,
   FaUserShield,
 } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import logo from "../assets/logo.png";
 import "../styles/Header.css";
+
+const navLinkClass =
+  (extra = "") =>
+  ({ isActive }) =>
+    `nb-link${extra ? ` ${extra}` : ""}${isActive ? " nb-link--active" : ""}`;
 
 const Header = () => {
   const [cartCount, setCartCount] = useState(0);
@@ -42,74 +46,76 @@ const Header = () => {
     };
   }, []);
 
-  // ✅ Navigate to cart page
-  const goToCart = () => {
-    navigate("/cart");
-  };
-
   const handleLogout = () => {
     logout();
     navigate("/");
   };
 
   return (
-    <div className="header">
-      <div className="logo-section" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
-        <img src={logo} alt="FoodVilla" className="logo" />
+    <header className="nb">
+      <div className="nb-inner">
+        <Link to="/" className="nb-brand" aria-label="FoodVilla home">
+          <img src={logo} alt="FoodVilla" className="nb-logo" />
+        </Link>
+
+        <nav className="nb-links" aria-label="Main">
+          <NavLink to="/search" className={navLinkClass()}>
+            <FaSearch className="nb-icon" aria-hidden="true" />
+            <span className="nb-label">Search</span>
+          </NavLink>
+
+          <NavLink to="/help" className={navLinkClass()}>
+            <FaQuestionCircle className="nb-icon" aria-hidden="true" />
+            <span className="nb-label">Help</span>
+          </NavLink>
+
+          {isAuthenticated ? (
+            <>
+              <NavLink to="/orders" className={navLinkClass()}>
+                <FaReceipt className="nb-icon" aria-hidden="true" />
+                <span className="nb-label">My Orders</span>
+              </NavLink>
+
+              {isAdmin && (
+                <NavLink to="/admin" className={navLinkClass()}>
+                  <FaUserShield className="nb-icon" aria-hidden="true" />
+                  <span className="nb-label">Admin</span>
+                </NavLink>
+              )}
+
+              <button
+                type="button"
+                className="nb-link"
+                onClick={handleLogout}
+                title={user?.fullName}
+              >
+                <FaSignOutAlt className="nb-icon" aria-hidden="true" />
+                <span className="nb-label">Logout</span>
+              </button>
+            </>
+          ) : (
+            // one entry point: the login and signup pages link to each other
+            <NavLink to="/login" className={navLinkClass("nb-link--cta")}>
+              <FaSignInAlt className="nb-icon" aria-hidden="true" />
+              <span className="nb-label">Login / Sign Up</span>
+            </NavLink>
+          )}
+
+          {/* 🛒 Cart Section */}
+          <NavLink
+            to="/cart"
+            className={navLinkClass("nb-link--cart")}
+            aria-label={cartCount > 0 ? `Cart, ${cartCount} items` : "Cart"}
+          >
+            <span className="nb-cart-icon">
+              <FaShoppingCart className="nb-icon" aria-hidden="true" />
+              {cartCount > 0 && <span className="nb-badge">{cartCount}</span>}
+            </span>
+            <span className="nb-label">Cart</span>
+          </NavLink>
+        </nav>
       </div>
-
-      <div className="menu-items">
-        <div className="menu-item" onClick={() => navigate("/search")}>
-          <FaSearch className="icon" />
-          <span>Search</span>
-        </div>
-
-        <div className="menu-item" onClick={() => navigate("/help")}>
-          <FaQuestionCircle className="icon" />
-          <span>Help</span>
-        </div>
-
-        {isAuthenticated ? (
-          <>
-            <div className="menu-item" onClick={() => navigate("/orders")}>
-              <FaReceipt className="icon" />
-              <span>My Orders</span>
-            </div>
-
-            {isAdmin && (
-              <div className="menu-item" onClick={() => navigate("/admin")}>
-                <FaUserShield className="icon" />
-                <span>Admin</span>
-              </div>
-            )}
-
-            <div className="menu-item" onClick={handleLogout} title={user?.fullName}>
-              <FaSignOutAlt className="icon" />
-              <span>Logout</span>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="menu-item" onClick={() => navigate("/login")}>
-              <FaSignInAlt className="icon" />
-              <span>Login</span>
-            </div>
-
-            <div className="menu-item" onClick={() => navigate("/signup")}>
-              <FaUserPlus className="icon" />
-              <span>Sign Up</span>
-            </div>
-          </>
-        )}
-
-        {/* 🛒 Cart Section */}
-        <div className="menu-item cart-icon" onClick={goToCart}>
-          <FaShoppingCart className="icon" />
-          {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
-          <span>Cart</span>
-        </div>
-      </div>
-    </div>
+    </header>
   );
 };
 

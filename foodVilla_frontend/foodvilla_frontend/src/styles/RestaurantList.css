@@ -1,117 +1,223 @@
+/* Home page — restaurant grid + cards.
+   Styling only: the markup in RestaurantList.jsx is unchanged, so the rating
+   badge, clock and pin icons are drawn with CSS. */
+
 .restaurant-list-wrapper {
+  --rl-accent: #ff6600;
+  --rl-ink: #1f2430;
+  --rl-muted: #6b7280;
+  --rl-ease: cubic-bezier(0.22, 0.61, 0.36, 1);   /* gentle ease-out */
+
   display: flex;
-  flex-direction: column;       /* stack content vertically */
+  flex-direction: column;
   flex: 1 1 auto;               /* allow wrapper to grow */
-  justify-content: center;      /* center cards vertically if space available */
-  align-items: center;          /* center cards horizontally */
-  padding: 20px;
-  background-color: #f9f9f9;
+  align-items: center;          /* center the grid horizontally */
+  padding: 28px 20px 48px;
+  background: linear-gradient(180deg, #fff3e8 0, #fafafa 280px);
+  font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
 }
 
+/* Cards fill the row and reflow on their own: 4 -> 3 -> 2 -> 1 per row,
+   and every card in a row stretches to the same height. */
 .restaurant-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  justify-content: center; /* center the cards inside */
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 24px;
   width: 100%;
   max-width: 1300px;
 }
 
 .restaurant-card {
-  background-color: #fff;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  overflow: hidden;
+  position: relative;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  background-color: #fff;
+  border: 1px solid rgba(31, 36, 48, 0.06);
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(31, 36, 48, 0.05), 0 6px 16px rgba(31, 36, 48, 0.07);
   cursor: pointer;
-  width: calc(25% - 15px); /* 4 cards per row default */
-  height: 320px;
-  transition: transform 0.3s;
+  /* an explicit transform keeps the rounded corners clipping the photo cleanly
+     while it zooms, and lets the lift animate from a matching start value */
+  transform: translateY(0);
+  transition: transform 0.4s var(--rl-ease), box-shadow 0.4s var(--rl-ease);
+  animation: rl-card-in 0.6s var(--rl-ease) backwards;
 }
 
 .restaurant-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-6px);
+  box-shadow: 0 2px 4px rgba(31, 36, 48, 0.06), 0 18px 32px rgba(31, 36, 48, 0.15);
 }
+
+/* cards ease in when the list loads */
+@keyframes rl-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== Image ===== */
 
 .restaurant-image {
+  display: block;
   width: 100%;
-  height: 180px;
+  aspect-ratio: 16 / 10;
   object-fit: cover;
+  /* shows while the photo loads, or if the hot-linked URL fails */
+  background: linear-gradient(135deg, #ffe4cf, #fff3e8);
+  transition: transform 0.7s var(--rl-ease);
 }
 
+.restaurant-card:hover .restaurant-image {
+  transform: scale(1.06);
+}
+
+/* soft fade at the bottom of the photo so it sits into the card */
+.restaurant-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  aspect-ratio: 16 / 10;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.22), transparent 40%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ===== Details ===== */
+
 .restaurant-card-content {
-  padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  flex: 1 1 auto;
+  gap: 6px;
+  padding: 14px 16px 16px;
 }
 
 .restaurant-card h3 {
   margin: 0;
   font-size: 1.1rem;
-  font-weight: bold;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--rl-ink);
 }
 
 .restaurant-card p {
   margin: 0;
   font-size: 0.9rem;
-  color: #555;
+  line-height: 1.45;
+  color: var(--rl-muted);
 }
 
+/* description: at most two lines so cards stay tidy */
+.restaurant-card-content > p:first-of-type {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  margin-bottom: 8px;           /* keeps the divider off the text */
+}
+
+/* rating + delivery time; pinned to the bottom of the card */
 .rating-delivery {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
   font-size: 0.85rem;
-  margin-top: 5px;
 }
 
-.rating {
-  color: #ffb400;
-  font-weight: bold;
+/* rating sits on the photo as a badge (top-left) */
+.restaurant-card .rating {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  color: var(--rl-ink);
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
-.delivery-time {
-  background-color: #f0f0f0;
-  padding: 2px 6px;
-  border-radius: 5px;
-  font-size: 0.75rem;
+.restaurant-card .delivery-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background-color: #fff1e6;
+  color: #9a3412;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.restaurant-card .delivery-time::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  background-color: var(--rl-accent);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+/* address with a pin; one line so every card's footer lines up */
+.restaurant-card-content > p:last-of-type {
+  position: relative;
+  padding-left: 20px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.restaurant-card-content > p:last-of-type::before {
+  content: "";
+  position: absolute;
+  left: 1px;
+  top: 3px;
+  width: 14px;
+  height: 14px;
+  background-color: #9ca3af;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 
 /* ===== Responsive ===== */
 
-/* Large screens: 4 cards per row */
-@media (min-width: 1301px) {
-  .restaurant-card {
-    width: calc(25% - 20px);
-  }
-}
-
-/* Laptop screens: 4 cards per row, centered */
-@media (max-width: 1300px) and (min-width: 1201px) {
-  .restaurant-card {
-    width: 23%;
-  }
-}
-
-/* Medium screens: 3 cards per row, centered */
-@media (max-width: 1200px) and (min-width: 901px) {
-  .restaurant-card {
-    width: 23%;
-  }
-}
-
-/* Tablets: 2 cards per row */
-@media (max-width: 900px) and (min-width: 601px) {
-  .restaurant-card {
-    width: 48%;
-  }
-}
-
-/* Mobiles: 1 card per row */
 @media (max-width: 600px) {
-  .restaurant-card {
-    width: 100%;
+  .restaurant-list-wrapper {
+    padding: 16px 16px 32px;
+  }
+
+  .restaurant-list {
+    gap: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .restaurant-card,
+  .restaurant-image {
+    transition: none;
+    animation: none;
+  }
+
+  .restaurant-card:hover,
+  .restaurant-card:hover .restaurant-image {
+    transform: none;
   }
 }

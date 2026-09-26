@@ -2,7 +2,9 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom";
 import confetti from "canvas-confetti";
 import { useAuth } from "../context/AuthContext";
+import { getAllFoodItems } from "../services/catalogueApi";
 import { createOrder, getMyOrders, getOrderById, getOrderQuote } from "../services/orderApi";
+import { reconcileCart } from "../utils/cartReconcile";
 import { FOOD_PLACEHOLDER, money } from "../utils/format";
 import PaymentMethods from "./PaymentMethods";
 import { SUCCESS_PAUSE_MS, describePaymentError, payForOrder, sleep } from "../utils/paymentFlow";
@@ -15,6 +17,7 @@ import {
 import "../styles/Cart.css";
 import "../styles/Checkout.css";
 import "../styles/Payment.css";
+import "../styles/CheckoutPolish.css";
 
 const celebrate = () => {
   const duration = 2 * 1000;
@@ -50,7 +53,11 @@ const Checkout = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [cartItems] = useState(() => JSON.parse(localStorage.getItem("cart")) || []);
+  const [cartItems, setCartItems] = useState(() => JSON.parse(localStorage.getItem("cart")) || []);
+  // Names of the lines dropped when the cart was repaired against the live menu.
+  const [removedNames, setRemovedNames] = useState([]);
+  // The cart is repaired at most once per visit, so a still-failing quote can't loop.
+  const repairedRef = useRef(false);
 
   const [address, setAddress] = useState(() => addressFromProfile(user));
   // Accounts created before signup collected city/state/pincode have an
@@ -127,6 +134,35 @@ const Checkout = () => {
   useEffect(() => {
     if (cartItems.length === 0) return;
     let cancelled = false;
+
+    const unavailable = "Some items in your cart are no longer available.";
+
+    // A 404 means the saved cart no longer matches the menu (an item is gone, or
+    // it belongs to another restaurant). Instead of leaving the customer stuck,
+    // check the cart against the live menu, drop what can't be ordered and price
+    // what is left (the cart change re-runs this effect).
+    const repairCart = () =>
+      getAllFoodItems()
+        .then((res) => {
+          if (cancelled) return;
+          const fixed = reconcileCart(cartItems, res.data);
+          if (!fixed) {
+            setQuoteError(unavailable);
+            return;
+          }
+          if (fixed.items.length > 0) {
+            localStorage.setItem("cart", JSON.stringify(fixed.items));
+          } else {
+            localStorage.removeItem("cart");
+          }
+          window.dispatchEvent(new Event("cartUpdated"));
+          setRemovedNames(fixed.removed.map((line) => line.itemName));
+          setCartItems(fixed.items);
+        })
+        .catch(() => {
+          if (!cancelled) setQuoteError(unavailable);
+        });
+
     getOrderQuote({
       restaurantId,
       items: cartItems.map((item) => ({ foodItemId: item.id, quantity: item.quantity })),
@@ -136,11 +172,16 @@ const Checkout = () => {
       })
       .catch((err) => {
         if (cancelled) return;
-        setQuoteError(
-          err.response?.status === 404
-            ? "Some items in your cart are no longer available."
-            : "We couldn't calculate your bill right now. Please try again."
-        );
+        if (err.response?.status === 404) {
+          if (!repairedRef.current) {
+            repairedRef.current = true;
+            repairCart();
+          } else {
+            setQuoteError(unavailable);
+          }
+          return;
+        }
+        setQuoteError("We couldn't calculate your bill right now. Please try again.");
       });
     return () => {
       cancelled = true;
@@ -292,9 +333,25 @@ const Checkout = () => {
     }
   };
 
+  const cartNotice = removedNames.length > 0 && (
+    <div className="co-notice" role="status">
+      <p className="co-notice-title">We updated your cart</p>
+      <p>
+        {removedNames.length === 1 ? "This item is" : "These items are"} no longer available from
+        this restaurant, so we took {removedNames.length === 1 ? "it" : "them"} out:
+      </p>
+      <ul>
+        {removedNames.map((name, index) => (
+          <li key={index}>{name}</li>
+        ))}
+      </ul>
+    </div>
+  );
+
   if (cartItems.length === 0) {
     return (
       <div className="cart-page">
+        {cartNotice}
         <p className="empty-cart">Your cart is empty.</p>
       </div>
     );
@@ -360,6 +417,7 @@ const Checkout = () => {
 
       <form className="co-layout" onSubmit={handleProceed}>
         <div className="co-main">
+          {cartNotice}
           <section className="co-card">
             <div className="co-card-head">
               <h3>

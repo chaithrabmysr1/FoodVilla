@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { FaCheckCircle } from "react-icons/fa";
 import { cancelOrder, getOrderById } from "../services/orderApi";
-import { money } from "../utils/format";
+import { getAllFoodItems } from "../services/catalogueApi";
+import { FOOD_PLACEHOLDER, money } from "../utils/format";
 import { SUCCESS_PAUSE_MS, payForOrder, sleep } from "../utils/paymentFlow";
 import { orderHeadline, paymentInfo, paymentMethodLabel } from "../utils/paymentInfo";
 import OrderStatusTimeline from "./OrderStatusTimeline";
@@ -10,6 +11,7 @@ import PaymentMethods from "./PaymentMethods";
 import "../styles/OrderDetails.css";
 import "../styles/OrderConfirmation.css";
 import "../styles/Payment.css";
+import "../styles/OrderConfirmationPolish.css";
 
 // Mirrors OrderStatusTransitionValidator's CANCELLED-reachable set on the
 // backend (order-service) — the backend is authoritative; this only decides
@@ -63,6 +65,9 @@ const OrderDetails = () => {
   const [payError, setPayError] = useState("");
   const [justPaid, setJustPaid] = useState(false);
   const busyRef = useRef(false);
+  // foodItemId -> image URL. Orders only store name/price/quantity, so the
+  // pictures come from the public catalogue (same as the order history page).
+  const [imageById, setImageById] = useState({});
 
   const fetchOrder = useCallback(async () => {
     try {
@@ -83,6 +88,25 @@ const OrderDetails = () => {
   useEffect(() => {
     fetchOrder();
   }, [fetchOrder]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getAllFoodItems()
+      .then((res) => {
+        if (cancelled) return;
+        const images = {};
+        (res.data || []).forEach((food) => {
+          if (food.imageUrl) images[food.id] = food.imageUrl;
+        });
+        setImageById(images);
+      })
+      .catch(() => {
+        // Pictures are decorative — the items list works fine with placeholders.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Clean polling fallback until real-time (WebSocket/SSE) status push
   // exists — stops once the order reaches a terminal status.
@@ -355,6 +379,17 @@ const OrderDetails = () => {
             <ul className="oc-items">
               {order.items.map((item) => (
                 <li className="oc-item" key={item.foodItemId}>
+                  <img
+                    className="oc-item-img"
+                    src={imageById[item.foodItemId] || FOOD_PLACEHOLDER}
+                    alt={item.itemName}
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = FOOD_PLACEHOLDER;
+                    }}
+                  />
                   <div className="oc-item-text">
                     <p className="oc-item-name">{item.itemName}</p>
                     <p className="oc-item-meta">
