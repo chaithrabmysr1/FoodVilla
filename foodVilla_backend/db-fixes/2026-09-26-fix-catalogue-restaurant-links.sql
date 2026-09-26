@@ -11,9 +11,11 @@
 --   mysql -u <user> -p < db-fixes/2026-09-26-fix-catalogue-restaurant-links.sql
 -- Apply it AFTER the food_items rows exist (ids 2-51 as imported). Take a backup first.
 --
--- Left as-is on purpose (see the audit report): items 14 and 46 are still an exact duplicate;
--- items 16 and 17 keep their stored text as name (dish identity is ambiguous); restaurants.cost_for_two
--- is untouched.
+-- Item 46 is deleted: it was an exact duplicate of item 14 (same name, price and image, both at Chinese Wok).
+-- The DELETE only fires if item 14 still exists with the same price and image AND no order line
+-- (foodvilla_orderService.order_items) references item 46, so it can never orphan an order.
+-- Left as-is on purpose: items 16 and 17 keep their stored text as name (dish identity is ambiguous);
+-- item 14 keeps a photo that shows a burger; restaurants.cost_for_two is untouched.
 
 USE foodvilla_foodCatalogueService;
 
@@ -60,11 +62,18 @@ UPDATE food_items SET restaurant_id = 8, item_name = 'Egg Biryani' WHERE id = 42
 UPDATE food_items SET restaurant_id = 8, item_name = 'Paneer Pulao' WHERE id = 43 AND restaurant_id = 10 AND item_name = 'Aromatic rice cooked with cubes of spiced paneer and mixed vegetables';
 UPDATE food_items SET restaurant_id = 9, item_name = 'Chocolate Chip Muffin' WHERE id = 44 AND restaurant_id = 11 AND item_name = 'Soft and moist chocolate muffin with chocolate chips';
 UPDATE food_items SET restaurant_id = 9, item_name = 'Espresso' WHERE id = 45 AND restaurant_id = 4 AND item_name = 'Strong, rich shot of freshly brewed espresso';
-UPDATE food_items SET restaurant_id = 7, item_name = 'Chicken Manchurian' WHERE id = 46 AND restaurant_id = 8 AND item_name = 'Crispy chicken pieces tossed in spicy Manchurian sauce';
 UPDATE food_items SET restaurant_id = 10, item_name = 'Mutton Seekh Kebab Roll', image_url = 'https://thumbs.dreamstime.com/b/artisan-chicken-shawarma-burrito-grilled-vegetables-delicious-served-bed-fresh-parsley-366381769.jpg' WHERE id = 47 AND restaurant_id = 6 AND item_name = 'Succulent mutton seekh kebabs wrapped in soft flatbread with tangy sauce';
 UPDATE food_items SET restaurant_id = 11, item_name = 'Seafood Pasta' WHERE id = 48 AND restaurant_id = 7 AND item_name = 'Pasta with a mix of shrimp, calamari, and mussels in garlic cream sauce';
 UPDATE food_items SET restaurant_id = 11, item_name = 'Creamy Mushroom Penne' WHERE id = 49 AND restaurant_id = 12 AND item_name = 'Penne pasta in creamy white sauce with sautéed mushrooms and herbs';
 UPDATE food_items SET restaurant_id = 12, item_name = 'Oreo Milkshake' WHERE id = 50 AND restaurant_id = 11 AND item_name = 'Cold and creamy milkshake blended with Oreo cookies and chocolate syrup';
 UPDATE food_items SET restaurant_id = 12, item_name = 'Gulab Jamun' WHERE id = 51 AND restaurant_id = 11 AND item_name = 'Soft, syrup-soaked sweet dumplings served warm';
+
+-- Remove the exact duplicate (item 46 of item 14).
+DELETE d FROM food_items AS d
+  JOIN food_items AS k ON k.id = 14 AND k.price = d.price AND k.image_url = d.image_url
+WHERE d.id = 46
+  AND d.item_name IN ('Crispy chicken pieces tossed in spicy Manchurian sauce', 'Chicken Manchurian')
+  AND d.restaurant_id IN (8, 7)
+  AND NOT EXISTS (SELECT 1 FROM foodvilla_orderService.order_items o WHERE o.food_item_id = 46);
 
 COMMIT;
